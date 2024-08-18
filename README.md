@@ -28,10 +28,10 @@
 </p>
 
 <p align="center">
-  <a href=https://discord.com/invite/C5N8dqCJAq>
-    <img src="https://dcbadge.limes.pink/api/server/C5N8dqCJAq" alt="Discord invite link badge"></img>
+  <a href=https://discord.gg/GTHc77sK>
+    <img src="https://dcbadge.limes.pink/api/server/GTHc77sK" alt="Discord invite link badge"></img>
   </a>
-  <a href="https://buymeacoffee.com/oseymour">
+  <a href="https://buymeacoffee.com/automatica">
     <img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee badge"></img>
   </a>
 </p>

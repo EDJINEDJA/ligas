@@ -1,5 +1,5 @@
 <p align="center" style="overflow: hidden; height: 130px;">
-  <img src="https://github.com/EDJINEDJA/ligas/blob/main/docs/images/ligasv0.png" alt="ligas logo" style="clip-path: inset(0 0 20px 0);">
+  <img src="https://github.com/EDJINEDJA/ligas/blob/main/docs/images/ligasv1.png" alt="ligas logo" style="clip-path: inset(0 0 20px 0);">
 </p>
 <p align="center">
     <a href="https://github.com/EDJINEDJA/ligas/blob/main/LICENSE" alt="Licence">

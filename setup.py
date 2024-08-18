@@ -32,8 +32,8 @@ setup(
     packages=find_packages(where="ligas"),
 
 
-    install_requires=['opencv-python', 'pyautogui', 'pyaudio'],
-    keywords=['python', 'video', 'stream', 'video stream', 'camera stream', 'sockets'],
+    install_requires=['requests', 'beautifulsoup4'],
+    keywords=['python', 'soccer', 'data', 'ligues', 'api', 'football'],
     classifiers=[
         "Development Status :: 1 - Planning",
         "Intended Audience :: Developers",

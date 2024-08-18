@@ -4,9 +4,9 @@
 <p align="center">
     <a href="https://github.com/EDJINEDJA/ligas/blob/main/LICENSE" alt="Licence">
         <img src="https://img.shields.io/badge/license-MIT-yellow.svg" />
-    </a>
+    </a> 
     <a href="https://github.com/EDJINEDJA/ligas/commits/main" alt="Commits">
-        <img src="https://img.shields.io/github/last-commit/EDJINEDJA/bot/main" />
+        <img src="https://img.shields.io/github/last-commit/EDJINEDJA/ligas/main" />
     </a>
     <a href="https://github.com/EDJINEDJA/ligas" alt="Activity">
         <img src="https://img.shields.io/badge/contributions-welcome-orange.svg" />

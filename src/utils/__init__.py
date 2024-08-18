@@ -1,4 +1,5 @@
 from .utils import *
+from .utils import load_bin
 import os
 import sys
 import logging

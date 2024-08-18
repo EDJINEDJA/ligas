@@ -17,6 +17,7 @@ import yaml
 from box import ConfigBox
 from box.exceptions import BoxValueError
 from ensure import ensure_annotations
+from utils import logger
 
 @ensure_annotations
 def read_yaml(path_to_yaml: Path) -> ConfigBox:

@@ -57,6 +57,6 @@ To install ligas, run
 $ pip install ligas
 ```
 
-## Soccer data
-Data can be scraped from the following sources:
-* [FBref](https://fbref.com/en/)
+## Soccer website scraped
+Data have been scraped from the following sources:
+* [FBref](https://fbref.com/fr/)

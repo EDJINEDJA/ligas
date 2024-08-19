@@ -1,8 +1,7 @@
-from .utils import *
-from .utils import load_bin
 import os
 import sys
 import logging
+
 
 logging_str = "[%(asctime)s: %(levelname)s: %(module)s: %(message)s]"
 
@@ -21,4 +20,4 @@ logging.basicConfig(
     ]
 )
 
-logger = logging.getLogger("mlProjectLogger")
+logger = logging.getLogger("ligasLogger")

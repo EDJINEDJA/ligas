@@ -2,6 +2,8 @@
 from ligas.exceptions import FbrefRequestException, FbrefRateLimitException
 from ligas.entity_config import Head2Head
 import requests
+import threading
+import time 
 
 from pathlib import Path
 import os
@@ -55,8 +57,8 @@ browser_headers = {
 }
 
 class fbref():
-    def __init__(self) -> None:
-        
+    def __init__(self, wait_time :int =10) -> None:
+        self.wait_time = wait_time
         choice = random.choice(headersKey)
         self.header = browser_headers.get(choice)
 
@@ -69,8 +71,11 @@ class fbref():
             Returns:
                 object (requests.Response): return the response
         """
+       
         
         response = requests.get(url=url, headers=self.header)
+        wait_thread = threading.Thread(target=self._wait)
+        wait_thread.start()
 
         status = response.status_code
 
@@ -81,4 +86,11 @@ class fbref():
             raise  FbrefRequestException()
         
         return response
+    
+    def _wait(self):
+        """
+            Defining a waiting time for separate requests
+        """
+        time.sleep(self.wait_time)
+
 

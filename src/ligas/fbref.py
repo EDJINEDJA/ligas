@@ -1,4 +1,3 @@
-
 from pathlib import Path
 import os
 import random
@@ -15,6 +14,7 @@ from .utils import browserHeaders
 from .utils import browser
 
 from .logger import logger
+
 
 
 class fbref():
@@ -90,16 +90,67 @@ class fbref():
         return SeasonUrls(seasonUrls)
     
     def getCurrentSeasons(self, league: str) -> CurrentSeasonUrls:
+        
         """
             year , ligue stats link
         """
+        
         return NotImplementedError
     
     def get_top_scorers(self, league: str) -> TopScorers:
         """
             years, club name, links to stats, 
         """
-        return NotImplementedError
+        """
+        Retrieves years, club name, links to Toscorcers stats.
+
+        Args:
+            league : str
+                The league for which to obtain TopScorers. Examples include "EPL" and "La Liga". 
+
+        Returns:
+            top_scorer, goals, stats_link, top_scorer_link, club .
+        """
+        url = compositions[league]['history url']
+        r = self._get(url)
+        soup = BeautifulSoup(r.content, 'html.parser')
+        # Find all rows (tr) corresponding to a season
+        rows = soup.find_all('tr')
+
+        # Initialize a list to store the results
+        top_scorers_data = []
+
+        # Loop through each row to extract the desired information
+        for row in rows:
+            # Extract the year
+            year = row.find('th', {'data-stat': 'year_id'}).text.strip()
+
+            # Extract the top scorer cell
+            top_scorer_cell = row.find('td', {'data-stat': 'top_scorers'})
+
+            if top_scorer_cell and top_scorer_cell.find('a'):
+                # Extract the top scorer's name
+                top_scorer_name = top_scorer_cell.find('a').text.strip()
+
+                # Extract the link to the top scorer's stats
+                top_scorer_link = "https://fbref.com" + top_scorer_cell.find('a')['href']
+
+                # Extract the number of goals scored by the top scorer
+                top_score_goals = top_scorer_cell.find('span').text.strip()
+
+                # Extract the club name (assuming it's stored in the champion column)
+                champ_cell = row.find('td', {'data-stat': 'champ'})
+                top_score_club = champ_cell.text.split('-')[0].strip() if champ_cell else "Unknown"
+
+                # Add the extracted information to the list
+                top_scorers_data.append({
+                    'year': year,
+                    'top_scorer': top_scorer_name,
+                    'goals': top_score_goals,
+                    'stats_link': top_scorer_link,
+                    'club': top_score_club
+                })
+        return TopScorers(top_scorers_data)
 
     def topScorer(self, league : str) -> BestScorer:
         """

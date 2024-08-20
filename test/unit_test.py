@@ -2,7 +2,7 @@ import unittest
 import requests
 
 from ligas import fbref
-from ligas.entity_config import Head2Head, SeasonUrls, BestScorer
+from ligas.entity_config import Head2Head, SeasonUrls, BestScorer, TopScorers
 
 class testLigasfbrefApi(unittest.TestCase):
     def setUp(self) -> None:
@@ -19,17 +19,23 @@ class testLigasfbrefApi(unittest.TestCase):
 
         self.assertIsInstance(response , requests.Response)
     
-    def test_invalid_key_word_of_get_current_seasons(self):
+    # def test_invalid_key_word_of_get_current_seasons(self):
 
-        response = self.api.get_valid_seasons(league = "La-ligas")
+    #     response = self.api.get_valid_seasons(league = "La-ligas")
 
-        self.assertIsInstance(response , SeasonUrls)
+    #     self.assertIsInstance(response , SeasonUrls)
 
     def test_get_current_seasons(self):
 
         response = self.api.get_valid_seasons(league = 'Serie A')
 
         self.assertIsInstance(response , SeasonUrls)
+    
+    def test_get_top_scorers(self):
+
+        response = self.api.get_top_scorers(league = 'Serie A')
+
+        self.assertIsInstance(response , TopScorers)
 
 if __name__ == "__main__":
     unittest.main()

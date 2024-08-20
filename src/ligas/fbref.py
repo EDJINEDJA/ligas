@@ -2,27 +2,31 @@
 from pathlib import Path
 import os
 import random
-
+from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 import threading
 import time 
 
-from .exceptions import FbrefRequestException, FbrefRateLimitException, FbrefInvalidLeagueException
+from .exceptions import (FbrefRequestException, FbrefRateLimitException, 
+        FbrefInvalidLeagueException, FbrefInvalidYearException)
 from .entity_config import Head2Head, SeasonUrls,CurrentSeasonUrls, TopScorers, BestScorer
 from .utils import compositions
 from .utils import browserHeaders
 from .utils import browser
 
 from .logger import logger
-
+validLeagues = [league for league in compositions.keys()]
 
 class fbref():
     def __init__(self, wait_time :int =5) -> None:
+        self.baseurl = 'https://fbref.com/'
         self.wait_time = wait_time
         webBrowser = random.choice(browser)
         self.header = browserHeaders.get(webBrowser)
 
+    
+    # ====================================== request http ==========================================#
     def _get(self, url : str) -> requests.Response:
 
         """
@@ -48,6 +52,7 @@ class fbref():
         
         return response
     
+    # ====================================== Waiting time to avoid rate limit error ====================#
     def _wait(self):
         """
             Defining a waiting time for avoid rate limit 
@@ -66,13 +71,14 @@ class fbref():
 
         Returns:
             Season and URLs : SeasonUrls[dict]
-                A dictionary in the format {year: URL, ...}, where URLs should be prefixed with "https://fbref.com" to form a complete link.
+                A dictionary in the format {year: URL, ...}, where URLs should be prefixed with "https://fbref.com" 
+                to form a complete link.
         """
 
         if not isinstance(league, str):
             raise  TypeError('`league` must be a str eg: Champions League .')
         
-        validLeagues = [league for league in compositions.keys()]
+        
 
         if league not in validLeagues:
             raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
@@ -89,17 +95,62 @@ class fbref():
 
         return SeasonUrls(seasonUrls)
     
-    def getCurrentSeasons(self, league: str) -> CurrentSeasonUrls:
+    #====================================== LeagueInfos ==========================================#
+    
+    def LeagueInfos(self, year : str, league: str) -> dict:
         """
-            year , ligue stats link
+        Retrieves league information for a given year and league name.
+
+        Args:
+            year (str): Desired year, which must not exceed the current year.
+                        Example: "2023-2024"
+
+        Returns:
+            league_info (dict): 
+                A dictionary in the format {info_header: info}, where `info_header` 
+                represents the title of the information, and `info` is the corresponding detail.
         """
-        return NotImplementedError
+
+
+        if not isinstance(year, str):
+            raise TypeError('`year` must be a string eg: 2024-2025')
+        
+        if not isinstance(league, str):
+            raise TypeError('`league` must be a string eg: Champions League .')
+
+        if league not in validLeagues:
+            raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
+        
+        cuurentYear = datetime.now().year
+        if int(year.split('-')[-1]) > int(cuurentYear):
+            raise FbrefInvalidYearException(year, 'FBref', cuurentYear)
+        
+        urls = self.get_valid_seasons(league)
+        url = urls.seasonUrls[year]
+        
+        response = requests.get(os.path.join(self.baseurl,url[1:]))
+        soup = BeautifulSoup(response.content, 'html.parser')
+        r = soup.find('div', attrs={ 'id':'meta'})
+        
+        leagueInfos = {
+                        p.find('strong').text.strip(':'): 
+                        (p.find('a').text if p.find('a') is not None else p.find('span').text 
+                         if p.find('span') is not None else p.get_text(strip=True).replace(p.find('strong').text, '').strip())
+                        for p in r.find_all('p')
+                        if p.find('strong') is not None
+                    }
+        
+        return leagueInfos
+        
+    #====================================== get_top_scorers ==========================================#
     
     def get_top_scorers(self, league: str) -> TopScorers:
         """
             years, club name, links to stats, 
         """
         return NotImplementedError
+    
+    #====================================== topScorer ==========================================#
 
     def topScorer(self, league : str) -> BestScorer:
         """

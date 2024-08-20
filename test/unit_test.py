@@ -30,6 +30,18 @@ class testLigasfbrefApi(unittest.TestCase):
         response = self.api.get_valid_seasons(league = 'Serie A')
 
         self.assertIsInstance(response , SeasonUrls)
+    
+    def test_YearLeagueInfos(self):
+
+        response = self.api.LeagueInfos('2023-2026', 'La Liga')
+
+        self.assertIsInstance(response , dict)
+    
+    def test_LeagueInfos(self):
+
+        response = self.api.LeagueInfos('2023-2024', 'La Liga')
+
+        self.assertIsInstance(response , dict)
 
 if __name__ == "__main__":
     unittest.main()

@@ -112,8 +112,10 @@ class fbref():
                 represents the title of the information, and `info` is the corresponding detail.
         """
         if not isinstance(league, str):
-            raise TypeError('`league` must be a string eg: Champions League .')
-
+           raise  TypeError('`league` must be a str eg: Champions League .')
+        
+        validLeagues = [league for league in compositions.keys()]
+       
         if league not in validLeagues:
             raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
 

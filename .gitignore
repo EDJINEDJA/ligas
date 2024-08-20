@@ -156,6 +156,7 @@ cython_debug/
 
 # folders
 
+research/
 
 logs/
 # PyCharm

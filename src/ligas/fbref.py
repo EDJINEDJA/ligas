@@ -1,18 +1,12 @@
+
 from pathlib import Path
 import os
 import random
 
 import requests
-<<<<<<< HEAD
 import threading
 import time 
 
-from .exceptions import FbrefRequestException, FbrefRateLimitException
-from .entity_config import Head2Head
-from .utils import compositions
-from .utils import browserHeaders
-from .utils import browser
-=======
 from bs4 import BeautifulSoup
 import threading
 import time 
@@ -24,8 +18,6 @@ from .utils import browserHeaders
 from .utils import browser
 
 from .logger import logger
->>>>>>> 8ffd8c220e7cfa406625d36e38339202b516b30b
-
 
 
 class fbref():

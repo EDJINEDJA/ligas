@@ -4,9 +4,6 @@ import os
 import random
 
 import requests
-import threading
-import time 
-
 from bs4 import BeautifulSoup
 import threading
 import time 

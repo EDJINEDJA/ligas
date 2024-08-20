@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 import random
-
+from typing import Sequence, List, Dict
 import requests
 from bs4 import BeautifulSoup
 import threading
@@ -97,70 +97,111 @@ class fbref():
         
         return NotImplementedError
     
-    def get_top_scorers(self, league: str) -> TopScorers:
+    def get_top_scorers(self, league: str) -> dict:
         """
-            years, club name, links to stats, 
-        """
-        """
-        Retrieves years, club name, links to Toscorcers stats.
+        Retrieves the top scorer's statistics for a given league and season.
 
         Args:
-            league : str
-                The league for which to obtain TopScorers. Examples include "EPL" and "La Liga". 
+            league (str): 
+                The league identifier for which to obtain TopScorers.
+                Examples include "EPL" (English Premier League) and "La Liga" (Spain's top division).
+            currentSeason (str): 
+                The season for which to retrieve the top scorer's statistics.
+                The format is typically "YYYY-YYYY", e.g., "2023-2024".
 
         Returns:
-            top_scorer, goals, stats_link, top_scorer_link, club .
-        """
+            dict: 
+                A dictionary containing the following keys:
+                - 'top_scorer': The name of the top scorer.
+                - 'goals': The number of goals scored by the top scorer.
+                - 'stats_link': The direct link to the detailed statistics of the top scorer.
+                - 'club': The club the top scorer played for during that season.
+                - 'top_scorer_link': The link to the player's profile on the website.
+
+        Raises:
+            ValueError: If no data is found for the given league and season.
+            TypeError: If the required table is not found on the page.
+            """
+        if not isinstance(league, str):
+           raise  TypeError('`league` must be a str eg: Champions League .')
+        
+        validLeagues = [league for league in compositions.keys()]
+       
+        if league not in validLeagues:
+           raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
+
         url = compositions[league]['history url']
         r = self._get(url)
         soup = BeautifulSoup(r.content, 'html.parser')
         # Find all rows (tr) corresponding to a season
         rows = soup.find_all('tr')
 
-        # Initialize a list to store the results
-        top_scorers_data = []
+        top_scorers = {
+                f'{league} season {row.find("th", {"data-stat": "year_id"}).text.strip()}': {
+                    'year': row.find("th", {"data-stat": "year_id"}).text.strip(),
+                    'top_scorer': row.find('td', {'data-stat': 'top_scorers'}).find('a').text.strip(),
+                    'goals': row.find('td', {'data-stat': 'top_scorers'}).find('span').text.strip(),
+                    'stats_link': "https://fbref.com" + row.find('td', {'data-stat': 'top_scorers'}).find('a')['href'],
+                    'club': row.find('td', {'data-stat': 'champ'}).text.split('-')[0].strip() if row.find('td', {'data-stat': 'champ'}) else "Unknown"
+                }
+                for row in soup.find_all('tr')
+                if row.find('td', {'data-stat': 'top_scorers'}) and row.find('td', {'data-stat': 'top_scorers'}).find('a')
+            }
+        return top_scorers
 
-        # Loop through each row to extract the desired information
-        for row in rows:
-            # Extract the year
-            year = row.find('th', {'data-stat': 'year_id'}).text.strip()
-
-            # Extract the top scorer cell
-            top_scorer_cell = row.find('td', {'data-stat': 'top_scorers'})
-
-            if top_scorer_cell and top_scorer_cell.find('a'):
-                # Extract the top scorer's name
-                top_scorer_name = top_scorer_cell.find('a').text.strip()
-
-                # Extract the link to the top scorer's stats
-                top_scorer_link = "https://fbref.com" + top_scorer_cell.find('a')['href']
-
-                # Extract the number of goals scored by the top scorer
-                top_score_goals = top_scorer_cell.find('span').text.strip()
-
-                # Extract the club name (assuming it's stored in the champion column)
-                champ_cell = row.find('td', {'data-stat': 'champ'})
-                top_score_club = champ_cell.text.split('-')[0].strip() if champ_cell else "Unknown"
-
-                # Add the extracted information to the list
-                top_scorers_data.append({
-                    'year': year,
-                    'top_scorer': top_scorer_name,
-                    'goals': top_score_goals,
-                    'stats_link': top_scorer_link,
-                    'club': top_score_club
-                })
-        return TopScorers(top_scorers_data)
-
-    def topScorer(self, league : str) -> BestScorer:
+    def topScorer(self, league: str, currentSeason: str) -> dict:
         """
-            Scraped the best scorer stats
-            Args:
-                league (str): getting valid league id
-            Returns:
-                BestScorer : stats of the best scorer of the season 
+        Scrapes the best scorer's statistics for a specified league and season.
+
+        Args:
+            league (str): The league identifier (e.g., "EPL", "La Liga").
+            currentSeason (str): The season to retrieve (e.g., "2023-2024").
+
+        Returns:
+            dict: A dictionary containing the top scorer's name, goals, stats link, and club.
+
+        Raises:
+            ValueError: If no data is found for the given league and season.
+            TypeError: If the stats table is not found on the page.
         """
-        return NotImplementedError
-    
+        # Fetch the top scorers data for the given league
+        response = self.get_top_scorers(league=league)
+        key = f'{league} season {currentSeason}'
 
+        # Check if the season data exists
+        if key in response:
+            stats_link = response[key]['stats_link']
+            
+            # Fetch and parse the top scorer's stats page
+            r = requests.get(stats_link)
+            if r.status_code != 200:
+                raise ConnectionError(f"Failed to retrieve data from {stats_link}")
 
+            soup = BeautifulSoup(r.content, 'html.parser')
+            table = soup.find('table', {'id': 'scout_summary_FW'})
+
+            if not table:
+                raise TypeError("The statistics table was not found on the page.")
+
+            # Extract statistics using list comprehension
+            stats = [
+                {
+                    'statistic': row.find('th', {'data-stat': 'statistic'}).text.strip(),
+                    'per90': row.find('td', {'data-stat': 'per90'}).text.strip(),
+                    'percentile': row.find('td', {'data-stat': 'percentile'}).text.strip()
+                }
+                for row in table.find_all('tr')[1:]  # Skip the header row
+            ]
+
+            # Return the extracted data in a structured dictionary
+            return {
+                'top_scorer': response[key]['top_scorer'],
+                'goals': response[key]['goals'],
+                'stats_link': stats_link,
+                'club': response[key]['club'],
+                'detailed_stats': stats
+            }
+
+        else:
+            # Raise an error if no data is found for the given season
+            raise ValueError(f"No data found for the {currentSeason} season.")

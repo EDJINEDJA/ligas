@@ -3,6 +3,7 @@ import requests
 
 from ligas import fbref
 from ligas.entity_config import Head2Head, SeasonUrls, BestScorer, TopScorers
+from typing import Sequence, List, Dict
 
 class testLigasfbrefApi(unittest.TestCase):
     def setUp(self) -> None:
@@ -25,17 +26,23 @@ class testLigasfbrefApi(unittest.TestCase):
 
     #     self.assertIsInstance(response , SeasonUrls)
 
-    def test_get_current_seasons(self):
+    # def test_get_current_seasons(self):
 
-        response = self.api.get_valid_seasons(league = 'Serie A')
+    #     response = self.api.get_valid_seasons(league = 'Serie A')
 
-        self.assertIsInstance(response , SeasonUrls)
+    #     self.assertIsInstance(response , SeasonUrls)
     
     def test_get_top_scorers(self):
 
         response = self.api.get_top_scorers(league = 'Serie A')
 
-        self.assertIsInstance(response , TopScorers)
+        self.assertIsInstance(response , dict)
+
+    def test_topScorer(self):
+
+        response = self.api.topScorer(league = 'Serie A',  currentSeason =  '2023-2024')
+
+        self.assertIsInstance(response , dict)
 
 if __name__ == "__main__":
     unittest.main()

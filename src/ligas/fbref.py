@@ -3,6 +3,7 @@ import os
 import random
 
 import requests
+<<<<<<< HEAD
 import threading
 import time 
 
@@ -11,6 +12,19 @@ from .entity_config import Head2Head
 from .utils import compositions
 from .utils import browserHeaders
 from .utils import browser
+=======
+from bs4 import BeautifulSoup
+import threading
+import time 
+
+from .exceptions import FbrefRequestException, FbrefRateLimitException, FbrefInvalidLeagueException
+from .entity_config import Head2Head, SeasonUrls,CurrentSeasonUrls, TopScorers, BestScorer
+from .utils import compositions
+from .utils import browserHeaders
+from .utils import browser
+
+from .logger import logger
+>>>>>>> 8ffd8c220e7cfa406625d36e38339202b516b30b
 
 
 
@@ -47,8 +61,66 @@ class fbref():
     
     def _wait(self):
         """
-            Defining a waiting time for separate requests
+            Defining a waiting time for avoid rate limit 
         """
         time.sleep(self.wait_time)
+    
+    # ====================================== get_current_seasons ==========================================#
+    def get_valid_seasons(self, league: str) -> SeasonUrls:
+        """
+        Retrieves all valid years and their corresponding URLs for a specified competition.
+
+        Args:
+            league : str
+                The league for which to obtain valid seasons. Examples include "EPL" and "La Liga". 
+                For a full list of options, import `compositions` from the FBref module and check the keys.
+
+        Returns:
+            Season and URLs : SeasonUrls[dict]
+                A dictionary in the format {year: URL, ...}, where URLs should be prefixed with "https://fbref.com" to form a complete link.
+        """
+
+        if not isinstance(league, str):
+            raise  TypeError('`league` must be a str eg: Champions League .')
+        
+        validLeagues = [league for league in compositions.keys()]
+
+        if league not in validLeagues:
+            raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
+
+        url = compositions[league]['history url']
+        r = self._get(url)
+        soup = BeautifulSoup(r.content, 'html.parser')
+
+        seasonUrls = dict([
+            (x.text, x.find('a')['href'])
+            for x in soup.find_all('th', {'data-stat': True, 'class': True})
+            if x.find('a') is not None
+        ])
+
+        return SeasonUrls(seasonUrls)
+    
+    def getCurrentSeasons(self, league: str) -> CurrentSeasonUrls:
+        """
+            year , ligue stats link
+        """
+        return NotImplementedError
+    
+    def get_top_scorers(self, league: str) -> TopScorers:
+        """
+            years, club name, links to stats, 
+        """
+        return NotImplementedError
+
+    def topScorer(self, league : str) -> BestScorer:
+        """
+            Scraped the best scorer stats
+            Args:
+                league (str): getting valid league id
+            Returns:
+                BestScorer : stats of the best scorer of the season 
+        """
+        return NotImplementedError
+    
 
 

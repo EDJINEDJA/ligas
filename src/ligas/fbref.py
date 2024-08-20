@@ -8,7 +8,7 @@ import threading
 import time 
 
 from .exceptions import FbrefRequestException, FbrefRateLimitException, FbrefInvalidLeagueException
-from .entity_config import Head2Head, SeasonUrls, BestScorer
+from .entity_config import Head2Head, SeasonUrls,CurrentSeasonUrls, TopScorers, BestScorer
 from .utils import compositions
 from .utils import browserHeaders
 from .utils import browser
@@ -55,7 +55,7 @@ class fbref():
         time.sleep(self.wait_time)
     
     # ====================================== get_current_seasons ==========================================#
-    def get_current_seasons(self, league: str) -> dict:
+    def get_valid_seasons(self, league: str) -> SeasonUrls:
         """
         Retrieves all valid years and their corresponding URLs for a specified competition.
 
@@ -70,10 +70,11 @@ class fbref():
         """
 
         if not isinstance(league, str):
-            raise  TypeError('`league` must be a str eg: https://fbref.com/en/comps/12/history/La-Liga-Seasons .')
+            raise  TypeError('`league` must be a str eg: Champions League .')
         
-        if league not in compositions.keys():
-            validLeagues = [league for league in compositions.keys()]
+        validLeagues = [league for league in compositions.keys()]
+
+        if league not in validLeagues:
             raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
 
         url = compositions[league]['history url']
@@ -87,11 +88,20 @@ class fbref():
         ])
 
         return SeasonUrls(seasonUrls)
-
-    def currentsLeagues(self) :
+    
+    def getCurrentSeasons(self, league: str) -> CurrentSeasonUrls:
+        """
+            year , ligue stats link
+        """
+        return NotImplementedError
+    
+    def get_top_scorers(self, league: str) -> TopScorers:
+        """
+            years, club name, links to stats, 
+        """
         return NotImplementedError
 
-    def bestScorer(self, league : str) -> BestScorer:
+    def topScorer(self, league : str) -> BestScorer:
         """
             Scraped the best scorer stats
             Args:
@@ -100,5 +110,6 @@ class fbref():
                 BestScorer : stats of the best scorer of the season 
         """
         return NotImplementedError
+    
 
 

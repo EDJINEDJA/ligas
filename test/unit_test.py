@@ -2,6 +2,7 @@ import unittest
 import requests
 
 from ligas import fbref
+from ligas.entity_config import Head2Head, SeasonUrls, BestScorer
 
 class testLigasfbrefApi(unittest.TestCase):
     def setUp(self) -> None:
@@ -17,7 +18,18 @@ class testLigasfbrefApi(unittest.TestCase):
         response = self.api._get(url = 'https://fbref.com/en/matches/32bb9a67/Athletic-Club-Getafe-August-15-2024-La-Liga')
 
         self.assertIsInstance(response , requests.Response)
+    
+    def test_invalid_key_word_of_get_current_seasons(self):
 
+        response = self.api.get_valid_seasons(league = "La-ligas")
+
+        self.assertIsInstance(response , SeasonUrls)
+
+    def test_get_current_seasons(self):
+
+        response = self.api.get_valid_seasons(league = 'Serie A')
+
+        self.assertIsInstance(response , SeasonUrls)
 
 if __name__ == "__main__":
     unittest.main()

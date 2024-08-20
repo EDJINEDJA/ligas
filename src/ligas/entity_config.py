@@ -7,8 +7,16 @@ class Head2Head():
 
 @dataclass
 class SeasonUrls():
-    season_urls : dict
+    seasonUrls : dict
 
+@dataclass
+class CurrentSeasonUrls():
+    url : str
+
+@dataclass
+class TopScorers():
+    seasonScorers : dict
+   
 @dataclass
 class BestScorer():
     name : str

@@ -47,7 +47,7 @@ class fbref():
     
     def _wait(self):
         """
-            Defining a waiting time for separate requests
+            Defining a waiting time for avoid rate limit 
         """
         time.sleep(self.wait_time)
 

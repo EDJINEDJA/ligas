@@ -1,6 +1,6 @@
 import unittest
 import requests
-
+import pytest
 from ligas import fbref
 from ligas.entity_config import Head2Head, SeasonUrls, BestScorer
 
@@ -20,11 +20,10 @@ class testLigasfbrefApi(unittest.TestCase):
         self.assertIsInstance(response , requests.Response)
     
     def test_invalid_key_word_of_get_current_seasons(self):
+        with pytest.raises(Exception) as e_info:
+            response = self.api.get_valid_seasons(league = "La-ligas")
 
-        response = self.api.get_valid_seasons(league = "La-ligas")
-
-        self.assertIsInstance(response , SeasonUrls)
-
+        
     def test_get_current_seasons(self):
 
         response = self.api.get_valid_seasons(league = 'Serie A')
@@ -40,6 +39,18 @@ class testLigasfbrefApi(unittest.TestCase):
     def test_LeagueInfos(self):
 
         response = self.api.LeagueInfos('2023-2024', 'La Liga')
+
+        self.assertIsInstance(response , dict)
+
+    def test_get_top_scorers(self):
+
+        response = self.api.TopScorers(league = 'Serie A')
+
+        self.assertIsInstance(response , dict)
+
+    def test_topScorer(self):
+
+        response = self.api.TopScorer(league = 'Serie A',  currentSeason =  '2023-2024')
 
         self.assertIsInstance(response , dict)
 

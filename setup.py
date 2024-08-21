@@ -38,7 +38,7 @@ setup(
     packages=find_packages(where="src"),
     cmdclass={'install': CustomInstallCommand},
     install_requires=[
-        'requests', 'beautifulsoup4', 'pyYAML', 'python-box', 'tqdm', 'ensure', 'numpy', 'pandas', 'joblib', 'pyfiglet'
+        'requests', 'beautifulsoup4', 'lxml' ,'pyYAML', 'python-box', 'tqdm', 'ensure', 'numpy', 'pandas', 'joblib', 'pyfiglet'
     ],
     keywords=['python', 'soccer', 'data', 'ligues', 'api', 'football'],
     classifiers=[

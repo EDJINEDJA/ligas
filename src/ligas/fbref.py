@@ -6,8 +6,10 @@ from datetime import datetime
 from typing import Sequence, List, Dict
 import requests
 from bs4 import BeautifulSoup
+from io import StringIO
 import threading
 import time 
+import pandas as pd
 
 from .exceptions import (FbrefRequestException, FbrefRateLimitException, 
         FbrefInvalidLeagueException, FbrefInvalidYearException, FbrefInvalidSeasonsException, FbrefInvalidTeamException)
@@ -583,12 +585,60 @@ class fbref():
 
     
     #====================================== FixturesByClub ==========================================#
-    def Players(self, club : str, year : str , league : str) -> dict:
-        """Players ststs by club , season and league
-            Args:
-                year (str)
-                league (str)
-            Returns:
+    def Players(self, team: str, league: str) -> pd.DataFrame:
+        """
+        Retrieve player statistics for a given team in a specific league.
+
+        Args:
+            team (str): The name of the team whose player statistics are to be retrieved.
+            league (str): The name of the league in which the team competes.
+
+        Returns:
+            pd.DataFrame: A DataFrame containing player statistics, including player URLs.
+                          The DataFrame includes all player stats available on the page.
+
+        Raises:
+            TypeError: If `league` is not a string.
+            FbrefInvalidLeagueException: If `league` is not among the valid leagues.
+            FbrefInvalidTeamException: If `team` is not found in the league's team list.
         """
 
+        if not isinstance(league, str):
+            raise TypeError('`league` must be a str, e.g., "Champions League".')
         
+        if league not in validLeagues:
+            raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
+
+        # Get the team information and URL for the specified team
+        teams_info = self.TeamsInfo(league)
+        if team not in teams_info:
+            raise FbrefInvalidTeamException('Team not found in the specified league.')
+        
+        url = teams_info[team]['url']
+
+        # Fetch the page content
+        response = self._get(os.path.join('https://fbref.com/', url[1:]))
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Locate the table containing player statistics
+        table = soup.find('table', {'class': 'stats_table', 'id': 'stats_standard_12'})
+
+        # Extract player names and their corresponding URLs
+        data = {
+            row.find('th', {'data-stat': "player"}).text: row.find('th', {'data-stat': "player"}).find('a')['href']
+            for row in table.tbody.find_all('tr')
+        }
+
+        # Convert the player URLs to a DataFrame
+        players_urls = pd.DataFrame(list(data.items()), columns=['Player', 'Url'])
+
+        # Read the HTML table into a DataFrame
+        players = pd.read_html(StringIO(str(table)))[0]
+
+        # Drop the first level of the column headers
+        players.columns = players.columns.droplevel(0)
+
+        # Merge the players DataFrame with the URLs DataFrame
+        players = players.merge(players_urls, how='left', on='Player')
+
+        return players

@@ -4,6 +4,7 @@ import pytest
 from ligas import fbref
 from ligas.entity_config import Head2Head, SeasonUrls, BestScorer, TopScorers
 from typing import Sequence, List, Dict
+import pandas as pd
 
 class testLigasfbrefApi(unittest.TestCase):
     def setUp(self) -> None:
@@ -70,6 +71,11 @@ class testLigasfbrefApi(unittest.TestCase):
         response = self.api.TeamInfos(team ='Real Madrid', league = 'La Liga')
 
         self.assertIsInstance(response , dict)
+
+    def test_players(self):
+        response = self.api.Players(team ='Real Madrid', league = 'La Liga')
+
+        self.assertIsInstance(response , pd.DataFrame)
 
 
 

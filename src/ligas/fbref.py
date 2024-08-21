@@ -255,3 +255,157 @@ class fbref():
             'club': response[key]['club'],
             'detailed_stats': stats
         }
+    
+    #====================================== Fixtures ==========================================#
+    def Fixtures(self, year : str , league : str) -> dict:
+        """Fixtures containing match report and head to head
+            Args:
+                year (str)
+                league (str)
+            Returns:
+
+                fixtures
+
+                    match link
+                    data-venue-time-only
+                    referre
+
+                    stats
+                        away
+                            xg
+                            link team stats
+                        home
+                            xg
+                            link team stats
+                    score
+                        away
+                        home
+                    venue
+                    teams
+                        away
+                        home
+
+        """
+    #====================================== MatchReport ==========================================#
+    def MatchReport(self, year : str , league : str) -> dict:
+        """Fixtures containing match report and head to head
+            Args:
+                year (str)
+                league (str)
+            Returns:
+
+                fixtures
+
+                    match link
+                    data-venue-time-only
+                    referre
+
+                    stats
+                        away
+                            xg
+                            link team stats
+                        home
+                            xg
+                            link team stats
+                    score
+                        away
+                        home
+                    venue
+                    teams
+                        away
+                        home
+
+        """
+    
+
+    #====================================== HeadHead ==========================================#
+    def HeadHead(self, year : str , league : str) -> dict:
+        """Fixtures containing match report and head to head
+            Args:
+                year (str)
+                league (str)
+            Returns:
+
+                fixtures
+
+                    match link
+                    data-venue-time-only
+                    referre
+
+                    stats
+                        away
+                            link team stats
+                        home
+                            link team stats
+                    venue
+                    teams
+                        away
+                        home
+
+        """
+    #====================================== Match ==========================================#
+
+    def Match(self, date : str, year : str , league : str) -> dict:
+        """Fixtures containing match of the date
+            Args:
+                year (str)
+                league (str)
+            Returns:
+
+                fixtures
+
+                    match link
+                    data-venue-time-only
+                    referre
+
+                    stats
+                        away
+                            link team stats
+                        home
+                            link team stats
+                    venue
+                    teams
+                        away
+                        home
+
+        """
+ 
+    #====================================== FixturesByClub ==========================================#
+    def FixturesByClub(self, club : str, year : str , league : str) -> dict:
+        """Fixtures containing match report and head to head
+            Args:
+                year (str)
+                league (str)
+            Returns:
+
+                fixtures
+
+                    match link
+                    data-venue-time-only
+                    referre
+
+                    stats
+                        away
+                            xg
+                            link team stats
+                        home
+                            xg
+                            link team stats
+                    score
+                        away
+                        home
+                    venue
+                    teams
+                        away
+                        home
+
+        """
+    
+    #====================================== FixturesByClub ==========================================#
+    def Players(self, club : str, year : str , league : str) -> dict:
+        """Players ststs by club , season and league
+            Args:
+                year (str)
+                league (str)
+            Returns:
+        """

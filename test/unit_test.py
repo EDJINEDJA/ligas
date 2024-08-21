@@ -18,7 +18,7 @@ class testLigasfbrefApi(unittest.TestCase):
 
         response = self.api._get(url = 'https://fbref.com/en/matches/32bb9a67/Athletic-Club-Getafe-August-15-2024-La-Liga')
 
-       self.assertIsInstance(response , requests.Response)
+        self.assertIsInstance(response , requests.Response)
     
     def test_invalid_key_word_of_get_current_seasons(self):
         with pytest.raises(Exception) as e_info:

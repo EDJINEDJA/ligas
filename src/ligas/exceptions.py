@@ -46,3 +46,42 @@ class FbrefInvalidLeagueException(Exception):
 
         return f"InvalidLeague: {self.league} not exist for {self.module} , please find the right league in " +\
                            f"{self.leagues}"
+    
+class FbrefInvalidYearException(Exception):
+    """
+        Raised this exception when invalid year is provided by the client
+    """
+
+    def __init__(self, year : str, module : str, currentYear: Sequence[str]) -> None:
+        self.year = year
+        self.module = module
+        self.currentYear = currentYear
+
+        super().__init__()
+
+        
+    def __str__(self)->str:
+ 
+        return f"InvalidYear: the last year in {self.year} must be greater that {self.currentYear} " +\
+                f"when using  {self.module} module, please choose right year eg: 2023-2024"
+    
+class FbrefInvalidSeasonsException(Exception):
+    """
+        Raised this exception when year or season provided by the client are bad
+    """
+
+    def __init__(self, year : str, module : str,league : str, Saesons: list) -> None:
+        self.year = year
+        self.league = league
+        self.module = module
+        self.Saesons = Saesons
+
+        super().__init__()
+
+        
+    def __str__(self)->str:
+ 
+        return f"InvalidSeason:  {self.year} season {self.league}   is not in  {self.Saesons}" +\
+                f"when using  {self.module} module, please choose right key which is in {self.Saesons}"
+                          
+                          

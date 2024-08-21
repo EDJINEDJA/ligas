@@ -49,17 +49,11 @@ class testLigasfbrefApi(unittest.TestCase):
         response = self.api.TopScorer(league = 'Serie A',  currentSeason =  '2023-2024')
 
         self.assertIsInstance(response , dict)
+    
+    def test_Fixtures(self):
 
-    def test_get_top_scorers(self):
-
-        response = self.api.TopScorers(league = 'Serie A')
-
-        self.assertIsInstance(response , dict)
-
-    def test_topScorer(self):
-
-        response = self.api.TopScorer(league = 'Serie A',  currentSeason =  '2023-2024')
-
+        response = self.api.Fixtures(year = '2023-2024', league = 'Serie A')
+        
         self.assertIsInstance(response , dict)
     
     def test_teamsinfo(self):

@@ -451,7 +451,7 @@ class fbref():
         #---------------------getting Cuurent Team Stats--------------------------------------
       
         url = urls.seasonUrls[f"{int(cuurentYear)-1}-{cuurentYear}"]
-        response = requests.get(os.path.join(self.baseurl,url[1:]))
+        response = self._get(os.path.join(self.baseurl,url[1:]))
         soup = BeautifulSoup(response.content, 'html.parser')
 
         #  Looking for the table with the classes 'wikitable' and 'sortable'
@@ -491,7 +491,7 @@ class fbref():
         
         url = urls.seasonUrls[f"{cuurentYear}-{int(cuurentYear)+1}"]
         
-        response = requests.get(os.path.join(self.baseurl,url[1:]))
+        response = self._get(os.path.join(self.baseurl,url[1:]))
         soup = BeautifulSoup(response.content, 'html.parser')
 
         # Collecting data into a dictionary with team names as keys and including rank

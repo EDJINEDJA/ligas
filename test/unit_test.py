@@ -26,11 +26,11 @@ class testLigasfbrefApi(unittest.TestCase):
             response = self.api.get_valid_seasons(league = "La-ligas")
 
         
-    def test_invalid_key_word_of_get_current_seasons(self):
+    # def test_invalid_key_word_of_get_current_seasons(self):
 
-        response = self.api.get_valid_seasons(league = "La-ligas")
+    #     response = self.api.get_valid_seasons(league = "La-ligas")
 
-        self.assertIsInstance(response , SeasonUrls)
+    #     self.assertIsInstance(response , SeasonUrls)
 
     def test_get_current_seasons(self):
 

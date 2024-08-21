@@ -84,4 +84,22 @@ class FbrefInvalidSeasonsException(Exception):
         return f"InvalidSeason:  {self.year} season {self.league}   is not in  {self.Saesons}" +\
                 f"when using  {self.module} module, please choose right key which is in {self.Saesons}"
                           
-                          
+class FbrefInvalidTeamException(Exception):
+    """
+        Raised this exception when year or season provided by the client are bad
+    """
+    
+    def __init__(self, year : str, module : str,league : str, team : str, teams: list) -> None:
+        self.year = year
+        self.league = league
+        self.module = module
+        self.team = team
+        self.teams = teams
+
+        super().__init__()
+
+        
+    def __str__(self)->str:
+ 
+        return f"InvalidTeam:  {self.year} season--{self.team}  is not valid " +\
+                f"when using  {self.module} module, please choose right team which is in {self.teams}"                        

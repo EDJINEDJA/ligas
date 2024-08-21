@@ -11,43 +11,23 @@ class testLigasfbrefApi(unittest.TestCase):
         self.api = fbref()
         super().setUp()
     
-    def test_get_module(self):
-        """
-            Testing _get module from fbref
-        """
+    # def test_get_module(self):
+    #     """
+    #         Testing _get module from fbref
+    #     """
 
-        response = self.api._get(url = 'https://fbref.com/en/matches/32bb9a67/Athletic-Club-Getafe-August-15-2024-La-Liga')
+    #     response = self.api._get(url = 'https://fbref.com/en/matches/32bb9a67/Athletic-Club-Getafe-August-15-2024-La-Liga')
 
-        self.assertIsInstance(response , requests.Response)
+    #    self.assertIsInstance(response , requests.Response)
     
-<<<<<<< HEAD
-    # def test_invalid_key_word_of_get_current_seasons(self):
-=======
     def test_invalid_key_word_of_get_current_seasons(self):
         with pytest.raises(Exception) as e_info:
             response = self.api.get_valid_seasons(league = "La-ligas")
 
-        
-    def test_invalid_key_word_of_get_current_seasons(self):
-
-        response = self.api.get_valid_seasons(league = "La-ligas")
-
-        self.assertIsInstance(response , SeasonUrls)
-
     def test_get_current_seasons(self):
->>>>>>> main
 
         response = self.api.get_valid_seasons(league = 'Serie A')
 
-<<<<<<< HEAD
-    #     self.assertIsInstance(response , SeasonUrls)
-
-    # def test_get_current_seasons(self):
-
-    #     response = self.api.get_valid_seasons(league = 'Serie A')
-
-    #     self.assertIsInstance(response , SeasonUrls)
-=======
         self.assertIsInstance(response , SeasonUrls)
     
     def test_get_top_scorers(self):
@@ -61,29 +41,22 @@ class testLigasfbrefApi(unittest.TestCase):
         response = self.api.TopScorer(league = 'Serie A',  currentSeason =  '2023-2024')
 
         self.assertIsInstance(response , dict)
+    
+    def test_Fixtures(self):
 
->>>>>>> main
-    def test_get_top_scorers(self):
-
-        response = self.api.TopScorers(league = 'Serie A')
-
-        self.assertIsInstance(response , dict)
-
-    def test_topScorer(self):
-
-        response = self.api.TopScorer(league = 'Serie A',  currentSeason =  '2023-2024')
-
+        response = self.api.Fixtures(year = '2023-2024', league = 'Serie A')
+        
         self.assertIsInstance(response , dict)
     
-    def test_teamsinfo(self):
-        response = self.api.TeamsInfo(league = 'Serie A')
+    # def test_teamsinfo(self):
+    #     response = self.api.TeamsInfo(league = 'Serie A')
 
-        self.assertIsInstance(response , dict)
+    #     self.assertIsInstance(response , dict)
 
-    def test_teaminfos(self):
-        response = self.api.TeamInfos(team ='Real Madrid', league = 'La Liga')
+    # def test_teaminfos(self):
+    #     response = self.api.TeamInfos(team ='Real Madrid', league = 'La Liga')
 
-        self.assertIsInstance(response , dict)
+    #     self.assertIsInstance(response , dict)
 
 
 

@@ -296,11 +296,12 @@ class fbref():
         if league not in validLeagues:
            raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
 
-        cuurentYear = datetime.now().year
         if int(year.split('-')[-1]) > int(cuurentYear):
             raise FbrefInvalidYearException(year, 'FBref', cuurentYear)
         
-        season_link = self.get_valid_seasons(league=league)[year]
+        urls = self.get_valid_seasons(league)
+                
+        season_link = urls.seasonUrls[year]
 
         fixtures_url = self.baseurl + '/'.join(season_link.split('/')[:-1] + ['schedule', '-'.join(season_link.split('/')[-1].split('-')[:-1]) + '-Scores-and-Fixtures'])
 
@@ -380,11 +381,12 @@ class fbref():
         if league not in validLeagues:
             raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
 
-        cuurentYear = datetime.now().year
         if int(year.split('-')[-1]) > int(cuurentYear):
             raise FbrefInvalidYearException(year, 'FBref', cuurentYear)
             
-        season_link = self.get_valid_seasons(league=league)[year]
+        urls = self.get_valid_seasons(league)
+                
+        season_link = urls.seasonUrls[year]
 
         fixtures_url = self.baseurl + '/'.join(season_link.split('/')[:-1] + ['schedule', '-'.join(season_link.split('/')[-1].split('-')[:-1]) + '-Scores-and-Fixtures'])
 
@@ -458,11 +460,12 @@ class fbref():
         if league not in validLeagues:
             raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
 
-        cuurentYear = datetime.now().year
         if int(year.split('-')[-1]) > int(cuurentYear):
             raise FbrefInvalidYearException(year, 'FBref', cuurentYear)
+        
+        urls = self.get_valid_seasons(league)
                 
-        season_link = self.get_valid_seasons(league=league)[year]
+        season_link = urls.seasonUrls[year]
 
         fixtures_url = self.baseurl + '/'.join(season_link.split('/')[:-1] + ['schedule', '-'.join(season_link.split('/')[-1].split('-')[:-1]) + '-Scores-and-Fixtures'])
 

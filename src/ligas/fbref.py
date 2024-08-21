@@ -218,7 +218,7 @@ class fbref():
             TypeError: If the stats table is not found on the page.
         """
         # Fetch the top scorers data for the given league
-        response = self.get_top_scorers(league=league)
+        response = self.TopScorers(league=league)
         key = f'{league} season {currentSeason}'
 
         # Check if the season data exists

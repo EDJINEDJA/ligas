@@ -562,194 +562,194 @@ class fbref():
         """
         return NotImplemented
     #====================================== TeamsInfo ================================================#
-    # def TeamsInfo(self,  league : str) -> dict:
-    #     """
-    #     Retrieves team information for a specified club and league, including current and previous season stats, previous and next matches, and seasonal trajectories.
+    def TeamsInfo(self,  league : str) -> dict:
+        """
+        Retrieves team information for a specified club and league, including current and previous season stats, previous and next matches, and seasonal trajectories.
 
-    #     Args:
-    #         club (str): The name of the club.
-    #         league (str): The name of the league (e.g., "Champions League").
+        Args:
+            club (str): The name of the club.
+            league (str): The name of the league (e.g., "Champions League").
 
-    #     Returns:
-    #         dict: A dictionary where each key is a team name, and the value is another dictionary containing:
-    #             - 'rank': The team's rank in the current season (starting from 1).
-    #             - 'logo': The URL of the team's logo.
-    #             - 'games': The number of games played.
-    #             - 'current stats': A nested dictionary with the following current season statistics:
-    #                 - 'wins': Number of wins.
-    #                 - 'draws': Number of draws.
-    #                 - 'losses': Number of losses.
-    #                 - 'goals_for': Number of goals scored.
-    #                 - 'goals_against': Number of goals conceded.
-    #                 - 'goal_diff': Goal difference.
-    #                 - 'points': Total points.
-    #                 - 'points_avg': Average points per game.
-    #                 - 'xg_for': Expected goals for.
-    #                 - 'xg_against': Expected goals against.
-    #                 - 'xg_diff': Expected goals difference.
-    #                 - 'xg_diff_per90': Expected goals difference per 90 minutes.
-    #                 - 'last_result': Result of the last match.
-    #                 - 'top_scorer': Top scorer of the team.
-    #                 - 'top_keeper': Top goalkeeper of the team.
-    #             - 'previous stats': A dictionary of statistics from the previous season if available, otherwise an empty dictionary.
+        Returns:
+            dict: A dictionary where each key is a team name, and the value is another dictionary containing:
+                - 'rank': The team's rank in the current season (starting from 1).
+                - 'logo': The URL of the team's logo.
+                - 'games': The number of games played.
+                - 'current stats': A nested dictionary with the following current season statistics:
+                    - 'wins': Number of wins.
+                    - 'draws': Number of draws.
+                    - 'losses': Number of losses.
+                    - 'goals_for': Number of goals scored.
+                    - 'goals_against': Number of goals conceded.
+                    - 'goal_diff': Goal difference.
+                    - 'points': Total points.
+                    - 'points_avg': Average points per game.
+                    - 'xg_for': Expected goals for.
+                    - 'xg_against': Expected goals against.
+                    - 'xg_diff': Expected goals difference.
+                    - 'xg_diff_per90': Expected goals difference per 90 minutes.
+                    - 'last_result': Result of the last match.
+                    - 'top_scorer': Top scorer of the team.
+                    - 'top_keeper': Top goalkeeper of the team.
+                - 'previous stats': A dictionary of statistics from the previous season if available, otherwise an empty dictionary.
 
-    #     Raises:
-    #         TypeError: If `league` is not a string.
-    #         FbrefInvalidLeagueException: If `league` is not a valid league name.
-    #     """
+        Raises:
+            TypeError: If `league` is not a string.
+            FbrefInvalidLeagueException: If `league` is not a valid league name.
+        """
 
-    #     if not isinstance(league, str):
-    #        raise  TypeError('`league` must be a str eg: Champions League .')
+        if not isinstance(league, str):
+           raise  TypeError('`league` must be a str eg: Champions League .')
         
-    #     if league not in validLeagues:
-    #         raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
+        if league not in validLeagues:
+            raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
 
         
-    #     urls = self.get_valid_seasons(league)
+        urls = self.get_valid_seasons(league)
 
-    #     #---------------------getting Cuurent Team Stats--------------------------------------
+        #---------------------getting Cuurent Team Stats--------------------------------------
       
-    #     url = urls.seasonUrls[f"{int(cuurentYear)-1}-{cuurentYear}"]
-    #     response = requests.get(os.path.join(self.baseurl,url[1:]))
-    #     soup = BeautifulSoup(response.content, 'html.parser')
+        url = urls.seasonUrls[f"{int(cuurentYear)-1}-{cuurentYear}"]
+        response = requests.get(os.path.join(self.baseurl,url[1:]))
+        soup = BeautifulSoup(response.content, 'html.parser')
 
-    #     #  Looking for the table with the classes 'wikitable' and 'sortable'
-    #     table = soup.find('table', class_='stats_table')
+        #  Looking for the table with the classes 'wikitable' and 'sortable'
+        table = soup.find('table', class_='stats_table')
 
-    #     # Collecting data into a dictionary with team names as keys and including rank
-    #     cuurentTeamStats = {
-    #         row.find_all('td')[0].find("a").get_text(strip=True): {
-    #             "rank": index + 1,
-    #             "logo": row.find_all('td')[0].find('img')['src'],
-    #             "url": row.find_all('td')[0].find("a")['href'],
-    #             "games": int(row.find_all('td')[1].get_text(strip=True)),
-    #             "current stats" : {"wins": int(row.find_all('td')[2].get_text(strip=True)),
-    #                 "draws": int(row.find_all('td')[3].get_text(strip=True)),
-    #                 "losses": int(row.find_all('td')[4].get_text(strip=True)),
-    #                 "goals_for": int(row.find_all('td')[5].get_text(strip=True)),
-    #                 "goals_against": int(row.find_all('td')[6].get_text(strip=True)),
-    #                 "goal_diff": row.find_all('td')[7].get_text(strip=True),
-    #                 "points": int(row.find_all('td')[8].get_text(strip=True)),
-    #                 "points_avg": float(row.find_all('td')[9].get_text(strip=True)),
-    #                 "xg_for": float(row.find_all('td')[10].get_text(strip=True)),
-    #                 "xg_against": float(row.find_all('td')[11].get_text(strip=True)),
-    #                 "xg_diff": row.find_all('td')[12].get_text(strip=True),
-    #                 "xg_diff_per90": row.find_all('td')[13].get_text(strip=True),
-    #                 "last_result": row.find_all('td')[14].get_text(strip=True),
-    #                 "top_scorer": row.find_all('td')[16].get_text(strip=True),
-    #                 "top_keeper": row.find_all('td')[17].get_text(strip=True)}
-    #         }
-    #         for index, row in enumerate(table.tbody.find_all('tr'))
-    #         if row.find_all('td')  # Ensures only rows with data are processed
-    #     }
+        # Collecting data into a dictionary with team names as keys and including rank
+        cuurentTeamStats = {
+            row.find_all('td')[0].find("a").get_text(strip=True): {
+                "rank": index + 1,
+                "logo": row.find_all('td')[0].find('img')['src'],
+                "url": row.find_all('td')[0].find("a")['href'],
+                "games": int(row.find_all('td')[1].get_text(strip=True)),
+                "current stats" : {"wins": int(row.find_all('td')[2].get_text(strip=True)),
+                    "draws": int(row.find_all('td')[3].get_text(strip=True)),
+                    "losses": int(row.find_all('td')[4].get_text(strip=True)),
+                    "goals_for": int(row.find_all('td')[5].get_text(strip=True)),
+                    "goals_against": int(row.find_all('td')[6].get_text(strip=True)),
+                    "goal_diff": row.find_all('td')[7].get_text(strip=True),
+                    "points": int(row.find_all('td')[8].get_text(strip=True)),
+                    "points_avg": float(row.find_all('td')[9].get_text(strip=True)),
+                    "xg_for": float(row.find_all('td')[10].get_text(strip=True)),
+                    "xg_against": float(row.find_all('td')[11].get_text(strip=True)),
+                    "xg_diff": row.find_all('td')[12].get_text(strip=True),
+                    "xg_diff_per90": row.find_all('td')[13].get_text(strip=True),
+                    "last_result": row.find_all('td')[14].get_text(strip=True),
+                    "top_scorer": row.find_all('td')[16].get_text(strip=True),
+                    "top_keeper": row.find_all('td')[17].get_text(strip=True)}
+            }
+            for index, row in enumerate(table.tbody.find_all('tr'))
+            if row.find_all('td')  # Ensures only rows with data are processed
+        }
 
 
 
-    #     #--------------------- getting previous Year Team Stats--------------------------------------
+        #--------------------- getting previous Year Team Stats--------------------------------------
       
         
-    #     url = urls.seasonUrls[f"{cuurentYear}-{int(cuurentYear)+1}"]
+        url = urls.seasonUrls[f"{cuurentYear}-{int(cuurentYear)+1}"]
         
-    #     response = requests.get(os.path.join(self.baseurl,url[1:]))
-    #     soup = BeautifulSoup(response.content, 'html.parser')
+        response = requests.get(os.path.join(self.baseurl,url[1:]))
+        soup = BeautifulSoup(response.content, 'html.parser')
 
-    #     # Collecting data into a dictionary with team names as keys and including rank
-    #     previousTeamStats = {
-    #         row.find_all('td')[0].find("a").get_text(strip=True): {
-    #             "rank": index + 1,
-    #             "logo": row.find_all('td')[0].find('img')['src'],
-    #             "url": row.find_all('td')[0].find("a")['href'],
-    #             "games": int(row.find_all('td')[1].get_text(strip=True)),
-    #             "wins": int(row.find_all('td')[2].get_text(strip=True)),
-    #             "draws": int(row.find_all('td')[3].get_text(strip=True)),
-    #             "losses": int(row.find_all('td')[4].get_text(strip=True)),
-    #             "goals_for": int(row.find_all('td')[5].get_text(strip=True)),
-    #             "goals_against": int(row.find_all('td')[6].get_text(strip=True)),
-    #             "goal_diff": row.find_all('td')[7].get_text(strip=True),
-    #             "points": int(row.find_all('td')[8].get_text(strip=True)),
-    #             "points_avg": float(row.find_all('td')[9].get_text(strip=True)),
-    #             "xg_for": float(row.find_all('td')[10].get_text(strip=True)),
-    #             "xg_against": float(row.find_all('td')[11].get_text(strip=True)),
-    #             "xg_diff": row.find_all('td')[12].get_text(strip=True),
-    #             "xg_diff_per90": row.find_all('td')[13].get_text(strip=True),
-    #             "last_result": row.find_all('td')[14].get_text(strip=True),
-    #             "top_scorer": row.find_all('td')[16].get_text(strip=True), 
-    #             "top_keeper": row.find_all('td')[17].get_text(strip=True),
-    #         }
-    #         for index, row in enumerate(table.tbody.find_all('tr'))
-    #         if row.find_all('td')  # Ensures only rows with data are processed
-    #     }
+        # Collecting data into a dictionary with team names as keys and including rank
+        previousTeamStats = {
+            row.find_all('td')[0].find("a").get_text(strip=True): {
+                "rank": index + 1,
+                "logo": row.find_all('td')[0].find('img')['src'],
+                "url": row.find_all('td')[0].find("a")['href'],
+                "games": int(row.find_all('td')[1].get_text(strip=True)),
+                "wins": int(row.find_all('td')[2].get_text(strip=True)),
+                "draws": int(row.find_all('td')[3].get_text(strip=True)),
+                "losses": int(row.find_all('td')[4].get_text(strip=True)),
+                "goals_for": int(row.find_all('td')[5].get_text(strip=True)),
+                "goals_against": int(row.find_all('td')[6].get_text(strip=True)),
+                "goal_diff": row.find_all('td')[7].get_text(strip=True),
+                "points": int(row.find_all('td')[8].get_text(strip=True)),
+                "points_avg": float(row.find_all('td')[9].get_text(strip=True)),
+                "xg_for": float(row.find_all('td')[10].get_text(strip=True)),
+                "xg_against": float(row.find_all('td')[11].get_text(strip=True)),
+                "xg_diff": row.find_all('td')[12].get_text(strip=True),
+                "xg_diff_per90": row.find_all('td')[13].get_text(strip=True),
+                "last_result": row.find_all('td')[14].get_text(strip=True),
+                "top_scorer": row.find_all('td')[16].get_text(strip=True), 
+                "top_keeper": row.find_all('td')[17].get_text(strip=True),
+            }
+            for index, row in enumerate(table.tbody.find_all('tr'))
+            if row.find_all('td')  # Ensures only rows with data are processed
+        }
 
-    #     #------------Create a new dictionary with updated stats including previous stats----------
-    #     teamStats = cuurentTeamStats
-    #     for team in cuurentTeamStats.keys():
-    #         if team in previousTeamStats.keys():
-    #             cuurentTeamStats[team]["previous stats"] = previousTeamStats[team]
+        #------------Create a new dictionary with updated stats including previous stats----------
+        teamStats = cuurentTeamStats
+        for team in cuurentTeamStats.keys():
+            if team in previousTeamStats.keys():
+                cuurentTeamStats[team]["previous stats"] = previousTeamStats[team]
         
-    #     return teamStats
+        return teamStats
     
-    # #====================================== TeamsInfo ================================================#
-    # def TeamInfos(self,  team: str, league : str) -> dict:
-    #     """
-    #     Retrieves detailed information for a specific team within a specified league.
+    #====================================== TeamsInfo ================================================#
+    def TeamInfos(self,  team: str, league : str) -> dict:
+        """
+        Retrieves detailed information for a specific team within a specified league.
 
-    #     Args:
-    #         team (str): The name of the team whose information is being requested.
-    #         league (str): The name of the league where the team plays (e.g., "Champions League").
+        Args:
+            team (str): The name of the team whose information is being requested.
+            league (str): The name of the league where the team plays (e.g., "Champions League").
 
-    #     Returns:
-    #         dict: A dictionary containing detailed information about the specified team. The structure of the dictionary includes:
-    #             - 'rank': The team's rank in the current season (starting from 1).
-    #             - 'logo': The URL of the team's logo.
-    #             - 'games': The number of games played.
-    #             - 'current stats': A nested dictionary with current season statistics:
-    #                 - 'wins': Number of wins.
-    #                 - 'draws': Number of draws.
-    #                 - 'losses': Number of losses.
-    #                 - 'goals_for': Number of goals scored.
-    #                 - 'goals_against': Number of goals conceded.
-    #                 - 'goal_diff': Goal difference.
-    #                 - 'points': Total points.
-    #                 - 'points_avg': Average points per game.
-    #                 - 'xg_for': Expected goals for.
-    #                 - 'xg_against': Expected goals against.
-    #                 - 'xg_diff': Expected goals difference.
-    #                 - 'xg_diff_per90': Expected goals difference per 90 minutes.
-    #                 - 'last_result': Result of the last match.
-    #                 - 'top_scorer': Top scorer of the team.
-    #                 - 'top_keeper': Top goalkeeper of the team.
-    #             - 'previous stats': A dictionary of statistics from the previous season if available, otherwise an empty dictionary.
+        Returns:
+            dict: A dictionary containing detailed information about the specified team. The structure of the dictionary includes:
+                - 'rank': The team's rank in the current season (starting from 1).
+                - 'logo': The URL of the team's logo.
+                - 'games': The number of games played.
+                - 'current stats': A nested dictionary with current season statistics:
+                    - 'wins': Number of wins.
+                    - 'draws': Number of draws.
+                    - 'losses': Number of losses.
+                    - 'goals_for': Number of goals scored.
+                    - 'goals_against': Number of goals conceded.
+                    - 'goal_diff': Goal difference.
+                    - 'points': Total points.
+                    - 'points_avg': Average points per game.
+                    - 'xg_for': Expected goals for.
+                    - 'xg_against': Expected goals against.
+                    - 'xg_diff': Expected goals difference.
+                    - 'xg_diff_per90': Expected goals difference per 90 minutes.
+                    - 'last_result': Result of the last match.
+                    - 'top_scorer': Top scorer of the team.
+                    - 'top_keeper': Top goalkeeper of the team.
+                - 'previous stats': A dictionary of statistics from the previous season if available, otherwise an empty dictionary.
 
-    #     Raises:
-    #         TypeError: If `league` is not a string.
-    #         FbrefInvalidLeagueException: If `league` is not a valid league name.
-    #         FbrefInvalidTeamException: If `team` is not a valid team name in the specified league.
+        Raises:
+            TypeError: If `league` is not a string.
+            FbrefInvalidLeagueException: If `league` is not a valid league name.
+            FbrefInvalidTeamException: If `team` is not a valid team name in the specified league.
 
-    #     """
-    #     if not isinstance(league, str):
-    #        raise  TypeError('`league` must be a str eg: Champions League .')
+        """
+        if not isinstance(league, str):
+           raise  TypeError('`league` must be a str eg: Champions League .')
         
-    #     if league not in validLeagues:
-    #         raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
+        if league not in validLeagues:
+            raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
 
-    #     TeamsInfo = self.TeamsInfo(league)
+        TeamsInfo = self.TeamsInfo(league)
 
-    #     validTeams = TeamsInfo.keys()
+        validTeams = TeamsInfo.keys()
 
-    #     if team not in validTeams:
-    #         raise  FbrefInvalidTeamException(cuurentYear,'FBref', league,  team , list(validTeams))
+        if team not in validTeams:
+            raise  FbrefInvalidTeamException(cuurentYear,'FBref', league,  team , list(validTeams))
      
-    #     return TeamsInfo[team]
+        return TeamsInfo[team]
 
 
     
-    # #====================================== FixturesByClub ==========================================#
-    # def Players(self, club : str, year : str , league : str) -> dict:
-    #     """Players ststs by club , season and league
-    #         Args:
-    #             year (str)
-    #             league (str)
-    #         Returns:
-    #     """
+    #====================================== FixturesByClub ==========================================#
+    def Players(self, club : str, year : str , league : str) -> dict:
+        """Players ststs by club , season and league
+            Args:
+                year (str)
+                league (str)
+            Returns:
+        """
 
         

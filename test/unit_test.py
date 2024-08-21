@@ -11,14 +11,14 @@ class testLigasfbrefApi(unittest.TestCase):
         self.api = fbref()
         super().setUp()
     
-    # def test_get_module(self):
-    #     """
-    #         Testing _get module from fbref
-    #     """
+    def test_get_module(self):
+        """
+            Testing _get module from fbref
+        """
 
-    #     response = self.api._get(url = 'https://fbref.com/en/matches/32bb9a67/Athletic-Club-Getafe-August-15-2024-La-Liga')
+        response = self.api._get(url = 'https://fbref.com/en/matches/32bb9a67/Athletic-Club-Getafe-August-15-2024-La-Liga')
 
-    #    self.assertIsInstance(response , requests.Response)
+       self.assertIsInstance(response , requests.Response)
     
     def test_invalid_key_word_of_get_current_seasons(self):
         with pytest.raises(Exception) as e_info:
@@ -48,15 +48,15 @@ class testLigasfbrefApi(unittest.TestCase):
         
         self.assertIsInstance(response , dict)
     
-    # def test_teamsinfo(self):
-    #     response = self.api.TeamsInfo(league = 'Serie A')
+    def test_teamsinfo(self):
+        response = self.api.TeamsInfo(league = 'Serie A')
 
-    #     self.assertIsInstance(response , dict)
+        self.assertIsInstance(response , dict)
 
-    # def test_teaminfos(self):
-    #     response = self.api.TeamInfos(team ='Real Madrid', league = 'La Liga')
+    def test_teaminfos(self):
+        response = self.api.TeamInfos(team ='Real Madrid', league = 'La Liga')
 
-    #     self.assertIsInstance(response , dict)
+        self.assertIsInstance(response , dict)
 
 
 

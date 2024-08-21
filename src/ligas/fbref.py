@@ -110,6 +110,15 @@ class fbref():
             league_info (dict): 
                 A dictionary in the format {info_header: info}, where `info_header` 
                 represents the title of the information, and `info` is the corresponding detail.
+                A dictionary containing the following keys
+                'Governing Country': eg 'Spain' (country of the league)
+                'Level':  eg 'See League Structure' (level of the league)
+                'Gender': ': Male' ( gender)
+                'Most Goals': 'Robert Lewandowski', ( player name)
+                'Most Assists': 'Iker Almena'( assist name)
+                'Most Clean Sheets': 'Karl Jakob Hein' ( name of the clean sheet)
+                'Big 5': 'View Big 5 European Leagues together' ( the level of the league)
+                'league logo': 'https://cdn.ssref.net/req/202408161/tlogo/fb/12.png' ( logo of the league)
         """
         if not isinstance(league, str):
            raise  TypeError('`league` must be a str eg: Champions League .')

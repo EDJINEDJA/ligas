@@ -6,20 +6,24 @@ import os
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
+
 class CustomInstallCommand(install):
     def run(self):
         # calling welcome message
-        os.system(f'python {os.path.join(BASEDIR, "src", "ligas", "install_hook.py")} display_welcome')
+        os.system(
+            f'python {os.path.join(BASEDIR, "src", "ligas", "install_hook.py")} display_welcome'
+        )
         super().run()
+
 
 with codecs.open(os.path.join(BASEDIR, "README.md"), encoding="utf-8") as fh:
     long_description = fh.read()
 
-VERSION = "2.1.0"
+VERSION = "0.0.1"
 SRC_REPO = "ligas"
-DESCRIPTION = 'Streaming video data via networks'
-LONG_DESCRIPTION = 'A package that allows to build simple streams of video, audio and camera data.'
-REPO_NAME = "mlproject-MLflow"
+DESCRIPTION = "fetch soccer data with different ip and web browser"
+LONG_DESCRIPTION = "Ligas is a powerful tool designed for soccer enthusiasts, analysts, and developers. It allows you to fetch detailed soccer data from various leagues, teams, and players, providing the essential information needed for in-depth soccer data analysis. With Ligas, you can access up-to-date statistics, historical data, and performance metrics, enabling you to conduct comprehensive analyses, create visualizations, and build data-driven insights into the world of soccer. "
+REPO_NAME = "ligas"
 AUTHOR_USER_NAME = "edjinedja"
 AUTHOR_EMAIL = "automaticall06@gmail.com"
 
@@ -36,11 +40,21 @@ setup(
     },
     package_dir={"": "src"},
     packages=find_packages(where="src"),
-    cmdclass={'install': CustomInstallCommand},
+    cmdclass={"install": CustomInstallCommand},
     install_requires=[
-        'requests', 'beautifulsoup4', 'lxml' ,'pyYAML', 'python-box', 'tqdm', 'ensure', 'numpy', 'pandas', 'joblib', 'pyfiglet'
+        "requests",
+        "beautifulsoup4",
+        "lxml",
+        "pyYAML",
+        "python-box",
+        "tqdm",
+        "ensure",
+        "numpy",
+        "pandas",
+        "joblib",
+        "pyfiglet",
     ],
-    keywords=['python', 'soccer', 'data', 'ligues', 'api', 'football'],
+    keywords=["python", "soccer", "data", "ligues", "api", "football"],
     classifiers=[
         "Development Status :: 1 - Planning",
         "Intended Audience :: Developers",

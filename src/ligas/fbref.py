@@ -1081,47 +1081,24 @@ class fbref():
 
         soup = BeautifulSoup(response.content, 'html.parser')
 
-        players = self._players(soup)
 
-        teamstatscompetitions = self._teamstatscompetitions(soup)
-
-        keeper = self._keeper(soup)
-
-        passing = self._passing(soup)
-
-        shooting = self._shooting(soup)
-
-        passing_type = self._passing_type(soup)
-
-        goal_shot_creation = self._goal_shot_creation(soup)
-
-        defensive_actions = self._defensive_actions(soup)
-
-        possession = self._possession(soup)
-
-        passing_type = self._passing_type(soup)
-
-
-        #Adding additional stats in team info
-        teamInfos['current stats']['players'] = players
-
-        teamInfos['current stats']['Scores & Fixtures'] = teamstatscompetitions
-
-        teamInfos['current stats']['keeper'] = keeper
-
-        teamInfos['current stats']['passing'] = passing
-
-        teamInfos['current stats']['shooting'] = shooting
-
-        teamInfos['current stats']['passing_type'] = passing_type
-
-        teamInfos['current stats']['goal_shot_creation'] = goal_shot_creation
-
-        teamInfos['current stats']['defensive_actions'] =  defensive_actions
-
-        teamInfos['current stats']['possession'] = possession
-
-        teamInfos['current stats']['passing_type'] = passing_type
+        stats_categories = {'players' : {'re': 'players', 'header': 1}, 
+                            'Scores & Fixtures':{'re':'for','header': 0 },
+                            'keeper' : {'re': 'keeper', 'header': 1}, 
+                            'passing' : {'re':'passing','header': 1 },
+                            'shooting' : {'re':'shooting','header': 1 },
+                            'passing type' : {'re':'passing_type','header': 1 },
+                            'goal shot creation' : {'re':'gca','header': 1 },
+                            'defensive actions' : {'re':'defense','header': 1 },
+                            'possession' : {'re':'possession','header': 1 },
+                            'playing time' : {'re':'playing_time','header': 1 },
+                            }
+        
+        for cat in stats_categories.keys():
+            if cat != 'players':
+                teamInfos['current stats'][cat] = self._categorystats(soup, stats_categories[cat]['re'] , stats_categories[cat]['header'])
+            else:
+                teamInfos['current stats']['players'] = self._players(soup)
 
         #Adding additional stats previous season
         team_url = os.path.join(self.baseurl,teamInfos["previous stats"]["url"][1:])
@@ -1130,47 +1107,11 @@ class fbref():
 
         soup = BeautifulSoup(response.content, 'html.parser')
 
-        players = self._players(soup)
-
-        teamstatscompetitions = self._teamstatscompetitions(soup)
-
-        keeper = self._keeper(soup)
-
-        passing = self._passing(soup)
-
-        shooting = self._shooting(soup)
-
-        passing_type = self._passing_type(soup)
-
-        goal_shot_creation = self._goal_shot_creation(soup)
-
-        defensive_actions = self._defensive_actions(soup)
-
-        possession = self._possession(soup)
-
-        passing_type = self._passing_type(soup)
-
-
-        #Adding additional stats in team info
-        teamInfos["previous stats"]['players'] = players
-
-        teamInfos["previous stats"]['Scores & Fixtures'] = teamstatscompetitions
-
-        teamInfos["previous stats"]['keeper'] = keeper
-
-        teamInfos["previous stats"]['passing'] = passing
-
-        teamInfos["previous stats"]['shooting'] = shooting
-
-        teamInfos["previous stats"]['passing_type'] = passing_type
-
-        teamInfos["previous stats"]['goal_shot_creation'] = goal_shot_creation
-
-        teamInfos["previous stats"]['defensive_actions'] =  defensive_actions
-
-        teamInfos["previous stats"]['possession'] = possession
-
-        teamInfos["previous stats"]['passing_type'] = passing_type
+        for cat in stats_categories.keys():
+            if cat != 'players':
+                teamInfos['current stats'][cat] = self._categorystats(soup, stats_categories[cat]['re'] , stats_categories[cat]['header'])
+            else:
+                teamInfos['current stats']['players'] = self._players(soup)
        
         return teamInfos
 
@@ -1204,268 +1145,40 @@ class fbref():
         players_urls = pd.DataFrame(list(data.items()), columns=['Player', 'Url'])
 
         # Read the HTML table into a DataFrame
-        players = pd.read_html(StringIO(str(table)))[0].fillna('-')
-
-        # Drop the first level of the column headers
-        players.columns = players.columns.droplevel(0)
+        players = pd.read_html(StringIO(str(table)), header=1)[0].fillna('-')
 
         # Merge the players DataFrame with the URLs DataFrame
         players = players.merge(players_urls, how='left', on='Player')
 
         return players
-
-    #====================================== _teamstatscompetitions =========================================#
-
-    @staticmethod
-    def _teamstatscompetitions(soup: BeautifulSoup) -> pd.DataFrame:
-        """
-        Extracts and returns a DataFrame containing team statistics from a table within the provided 
-        BeautifulSoup object. This table typically contains data for scores, fixtures, and other 
-        related statistics across all competitions.
-
-        Args:
-            soup (BeautifulSoup): A BeautifulSoup object containing the HTML of the webpage 
-                                with the team statistics table.
-
-        Returns:
-            pd.DataFrame: A DataFrame containing team statistics across all competitions, 
-                        with columns representing various performance metrics.
-        """
-        # Locate the table containing team statistics for all competitions
-        table = soup.find('table', {'class': re.compile('stats'), 'id': re.compile('for')})
-
-        # Convert the HTML table into a DataFrame and fill any missing values with '-'
-        teamstatsallcompetition = pd.read_html(StringIO(str(table)))[0].fillna('-')
-
-        return teamstatsallcompetition
-
-    
-    #====================================== _keeper =========================================#
-    
-    @staticmethod
-    def _keeper(soup: BeautifulSoup) -> pd.DataFrame:
-        """
-        Extracts and returns a DataFrame containing goalkeeper statistics from a table within the provided
-        BeautifulSoup object. This table typically includes data related to goalkeeping performance.
-
-        Args:
-            soup (BeautifulSoup): A BeautifulSoup object containing the HTML of the webpage with the
-                                goalkeeper statistics table.
-
-        Returns:
-            pd.DataFrame: A DataFrame containing goalkeeper statistics, with columns representing various
-                        goalkeeping performance metrics.
-        """
-        # Locate the table containing goalkeeper statistics
-        table = soup.find('table', {'class': re.compile('stats'), 'id': re.compile('keeper')})
-
-        # Convert the HTML table into a DataFrame and fill any missing values with '-'
-        keeper = pd.read_html(StringIO(str(table)))[0].fillna('-')
-
-        # Drop the first level of the column headers (if it's a multi-level header)
-        keeper.columns = keeper.columns.droplevel(0)
-
-        return keeper
-    
-    #====================================== _passing =========================================#
+    #====================================== _categorystats =========================================#
 
     @staticmethod
-    def _passing(soup: BeautifulSoup) -> pd.DataFrame:
+    def _categorystats(soup: BeautifulSoup, category: str, header: int) -> pd.DataFrame:
         """
-        Extracts and returns a DataFrame containing passing statistics from a table within the provided
-        BeautifulSoup object. This table typically includes data related to passing performance metrics
-        for players or teams.
+        Extracts and returns a DataFrame containing statistics from a specified table on a webpage.
+
+        This method locates a table based on the provided category and reads it into a pandas DataFrame.
+        It uses the specified header row index to correctly interpret the table's column headers and 
+        fills any missing values with a placeholder ('-').
 
         Args:
-            soup (BeautifulSoup): A BeautifulSoup object containing the HTML of the webpage with the
-                                passing statistics table.
+            soup (BeautifulSoup): A BeautifulSoup object containing the HTML of the webpage with the table.
+            category (str): The identifier for the table's `id` attribute, which determines which table to extract.
+            header (int): The row index to use as the header for the DataFrame.
 
         Returns:
-            pd.DataFrame: A DataFrame containing passing statistics, with columns representing various
-                        passing performance metrics.
+            pd.DataFrame: A DataFrame containing the statistics from the specified table, with any missing values
+                        filled with '-'.
+        
+        Example:
+            # Example usage
+            df = _categorystats(soup, 'passing', 0)
         """
-        # Locate the table containing passing statistics
-        table = soup.find('table', {'class': re.compile('stats'), 'id': re.compile('passing')})
+        # Locate the table containing statistics
+        table = soup.find('table', {'class': re.compile('stats'), 'id': re.compile(f'{category}')})
 
         # Convert the HTML table into a DataFrame and fill any missing values with '-'
-        passing = pd.read_html(StringIO(str(table)))[0].fillna('-')
+        stats = pd.read_html(StringIO(str(table)), header=header)[0].fillna('-')
 
-        # Drop the first level of the column headers (if it's a multi-level header)
-        passing.columns = passing.columns.droplevel(0)
-
-        return passing
-
-    
-    #====================================== _shooting =========================================#
-
-    @staticmethod
-    def _shooting(soup: BeautifulSoup) -> pd.DataFrame:
-        """
-        Extracts and returns a DataFrame containing shooting statistics from a table within the provided
-        BeautifulSoup object. This table typically includes data related to shooting performance metrics
-        for players or teams.
-
-        Args:
-            soup (BeautifulSoup): A BeautifulSoup object containing the HTML of the webpage with the
-                                shooting statistics table.
-
-        Returns:
-            pd.DataFrame: A DataFrame containing shooting statistics, with columns representing various
-                        shooting performance metrics.
-        """
-        # Locate the table containing shooting statistics
-        table = soup.find('table', {'class': re.compile('stats'), 'id': re.compile('shooting')})
-
-        # Convert the HTML table into a DataFrame and fill any missing values with '-'
-        shooting = pd.read_html(StringIO(str(table)))[0].fillna('-')
-
-        # Drop the first level of the column headers (if it's a multi-level header)
-        shooting.columns = shooting.columns.droplevel(0)
-
-        return shooting
-
-    
-    #====================================== _passing_type =========================================#
-
-    @staticmethod
-    def _passing_type(soup: BeautifulSoup) -> pd.DataFrame:
-        """
-        Extracts and returns a DataFrame containing passing type statistics from a table within the provided
-        BeautifulSoup object. This table typically includes data related to different types of passes, such as
-        short, medium, and long passes, as well as their accuracy and success rates.
-
-        Args:
-            soup (BeautifulSoup): A BeautifulSoup object containing the HTML of the webpage with the
-                                passing type statistics table.
-
-        Returns:
-            pd.DataFrame: A DataFrame containing passing type statistics, with columns representing various
-                        metrics related to the types of passes.
-        """
-        # Locate the table containing passing type statistics
-        table = soup.find('table', {'class': re.compile('stats'), 'id': re.compile('passing_type')})
-
-        # Convert the HTML table into a DataFrame and fill any missing values with '-'
-        passing_type = pd.read_html(StringIO(str(table)))[0].fillna('-')
-
-        # Drop the first level of the column headers (if it's a multi-level header)
-        passing_type.columns = passing_type.columns.droplevel(0)
-
-        return passing_type
-
-    
-    #====================================== _goal_shot_creation =========================================#
-    
-    @staticmethod
-    def _goal_shot_creation(soup: BeautifulSoup) -> pd.DataFrame:
-        """
-        Extracts and returns a DataFrame containing statistics related to goal and shot creation from a table
-        within the provided BeautifulSoup object. This table typically includes data on actions leading to shots
-        and goals, such as key passes, dribbles, and fouls drawn.
-
-        Args:
-            soup (BeautifulSoup): A BeautifulSoup object containing the HTML of the webpage with the
-                                goal and shot creation statistics table.
-
-        Returns:
-            pd.DataFrame: A DataFrame containing goal and shot creation statistics, with columns representing
-                        various metrics related to shot-creating actions (SCA) and goal-creating actions (GCA).
-        """
-        # Locate the table containing goal and shot creation statistics
-        table = soup.find('table', {'class': re.compile('stats'), 'id': re.compile('gca')})
-
-        # Convert the HTML table into a DataFrame and fill any missing values with '-'
-        goal_shot_creation = pd.read_html(StringIO(str(table)))[0].fillna('-')
-
-        # Drop the first level of the column headers (if it's a multi-level header)
-        goal_shot_creation.columns = goal_shot_creation.columns.droplevel(0)
-
-        return goal_shot_creation
-    
-    #====================================== _defensive_actions =========================================#
-    
-    @staticmethod
-    def _defensive_actions(soup: BeautifulSoup) -> pd.DataFrame:
-        """
-        Extracts and returns a DataFrame containing statistics related to defensive actions from a table
-        within the provided BeautifulSoup object. This table typically includes data on actions such as tackles,
-        interceptions, clearances, and blocks.
-
-        Args:
-            soup (BeautifulSoup): A BeautifulSoup object containing the HTML of the webpage with the
-                                defensive actions statistics table.
-
-        Returns:
-            pd.DataFrame: A DataFrame containing defensive actions statistics, with columns representing
-                        various metrics related to defensive contributions such as tackles, interceptions,
-                        and clearances.
-        """
-        # Locate the table containing defensive actions statistics
-        table = soup.find('table', {'class': re.compile('stats'), 'id': re.compile('defense')})
-
-        # Convert the HTML table into a DataFrame and fill any missing values with '-'
-        defensive_actions = pd.read_html(StringIO(str(table)))[0].fillna('-')
-
-        # Drop the first level of the column headers (if it's a multi-level header)
-        defensive_actions.columns = defensive_actions.columns.droplevel(0)
-
-        return defensive_actions
-
-    
-    #====================================== _possession =========================================#
-    
-    @staticmethod
-    def _possession(soup: BeautifulSoup) -> pd.DataFrame:
-        """
-        Extracts and returns a DataFrame containing statistics related to possession from a table
-        within the provided BeautifulSoup object. This table typically includes data on metrics such as
-        possession percentage, passes, and other possession-related statistics.
-
-        Args:
-            soup (BeautifulSoup): A BeautifulSoup object containing the HTML of the webpage with the
-                                possession statistics table.
-
-        Returns:
-            pd.DataFrame: A DataFrame containing possession statistics, with columns representing
-                        various metrics related to possession such as possession percentage, total passes,
-                        and other relevant possession data.
-        """
-        # Locate the table containing possession statistics
-        table = soup.find('table', {'class': re.compile('stats'), 'id': re.compile('possession')})
-
-        # Convert the HTML table into a DataFrame and fill any missing values with '-'
-        possession = pd.read_html(StringIO(str(table)))[0].fillna('-')
-
-        # Drop the first level of the column headers (if it's a multi-level header)
-        possession.columns = possession.columns.droplevel(0)
-
-        return possession
-
-    
-    #====================================== _playing_time =========================================#
-    
-    @staticmethod
-    def _playing_time(soup: BeautifulSoup) -> pd.DataFrame:
-        """
-        Extracts and returns a DataFrame containing player playing time statistics from a table
-        within the provided BeautifulSoup object. This table typically includes data such as total
-        minutes played, average minutes per game, and other metrics related to playing time.
-
-        Args:
-            soup (BeautifulSoup): A BeautifulSoup object containing the HTML of the webpage with the
-                                playing time statistics table.
-
-        Returns:
-            pd.DataFrame: A DataFrame containing playing time statistics, with columns representing
-                        various metrics related to player participation and time on the field.
-        """
-        # Locate the table containing playing time statistics
-        table = soup.find('table', {'class': re.compile('stats'), 'id': re.compile('playing_time')})
-
-        # Convert the HTML table into a DataFrame and fill any missing values with '-'
-        playing_time = pd.read_html(StringIO(str(table)))[0].fillna('-')
-
-        # Drop the first level of the column headers (if it's a multi-level header)
-        playing_time.columns = playing_time.columns.droplevel(0)
-
-        return playing_time
+        return stats

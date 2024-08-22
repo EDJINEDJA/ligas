@@ -155,7 +155,6 @@ dmypy.json
 cython_debug/
 
 # folders
-
 research/
 legasenv/
 logs/

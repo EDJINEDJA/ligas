@@ -664,14 +664,12 @@ class fbref():
                         'home': {
                             'xg': row.find('td', {'data-stat': 'home_xg'}).text.strip() if row.find('td', {'data-stat': 'home_xg'}) else np.nan,
                             'link team stats': self.baseurl + row.find('td', {'data-stat': 'home_team'}).find('a')['href'] if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan,
-                            'team stats' : self.TeamInfos(team, league),
-                            'players' : self.Players(team, league)
+                            'team stats' : self.TeamInfos(team, league)
                         },
                         'away': {
                             'xg': row.find('td', {'data-stat': 'away_xg'}).text.strip() if row.find('td', {'data-stat': 'away_xg'}) else np.nan,
                             'link team stats': self.baseurl + row.find('td', {'data-stat': 'away_team'}).find('a')['href'] if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan,
-                            'team stats' : self.TeamInfos(team, league),
-                            'players' : self.Players(team, league)
+                            'team stats' : self.TeamInfos(team, league)
                         }
                     },
                     'score': {
@@ -763,14 +761,12 @@ class fbref():
                             'home': {
                                 'xg': row.find('td', {'data-stat': 'home_xg'}).text.strip() if row.find('td', {'data-stat': 'home_xg'}) else np.nan,
                                 'link team stats': self.baseurl + row.find('td', {'data-stat': 'home_team'}).find('a')['href'] if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan,
-                                'team stats' : self.TeamInfos(team, league),
-                                'players' : self.Players(team, league)
+                                'team stats' : self.TeamInfos(team, league)
                             },
                             'away': {
                                 'xg': row.find('td', {'data-stat': 'away_xg'}).text.strip() if row.find('td', {'data-stat': 'away_xg'}) else np.nan,
                                 'link team stats': self.baseurl + row.find('td', {'data-stat': 'away_team'}).find('a')['href'] if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan,
-                                'team stats' : self.TeamInfos(team, league),
-                                'players' : self.Players(team, league)
+                                'team stats' : self.TeamInfos(team, league)
                             }
                         },
                         'score': {
@@ -861,14 +857,12 @@ class fbref():
                             'home': {
                                 'xg': row.find('td', {'data-stat': 'home_xg'}).text.strip() if row.find('td', {'data-stat': 'home_xg'}) else np.nan,
                                 'link team stats': self.baseurl + row.find('td', {'data-stat': 'home_team'}).find('a')['href'] if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan,
-                                'team stats' : self.TeamInfos(team, league),
-                                'players' : self.Players(team, league)
+                                'team stats' : self.TeamInfos(team, league)
                             },
                             'away': {
                                 'xg': row.find('td', {'data-stat': 'away_xg'}).text.strip() if row.find('td', {'data-stat': 'away_xg'}) else np.nan,
                                 'link team stats': self.baseurl + row.find('td', {'data-stat': 'away_team'}).find('a')['href'] if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan,
-                                'team stats' : self.TeamInfos(team, league),
-                                'players' : self.Players(team, league)
+                                'team stats' : self.TeamInfos(team, league)
                             }
                         },
                         'score': {

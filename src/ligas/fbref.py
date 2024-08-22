@@ -429,7 +429,7 @@ class fbref():
 
         return fixtures
 
-    #====================================== HeadHead ==========================================#
+    #====================================== Head Head ==========================================#
     def HeadHead(self, year : str , league : str) -> dict:
         """Fixtures containing match report and head to head
             Args:
@@ -507,11 +507,12 @@ class fbref():
                 }
 
         return fixtures
-    #====================================== Match ==========================================#
+    #====================================== Matches ==========================================#
 
-    def Match(self, date : str, year : str , league : str) -> dict:
-        """Fixtures containing match of the date
+    def Matches(self, date : str, year : str , league : str) -> dict:
+        """Fixtures containing matches of the date
             Args:
+                date (str)
                 year (str)
                 league (str)
             Returns:
@@ -535,9 +536,9 @@ class fbref():
         """
         return NotImplemented
  
-    #====================================== FixturesByClub ==========================================#
-    def FixturesByClub(self, club : str, year : str , league : str) -> dict:
-        """Fixtures containing match report and head to head
+    #====================================== Fixture team ==========================================#
+    def FixturesByTeam(self, team : str, year : str , league : str) -> dict:
+        """FixtureTeam containing match report and head to head of one  club
             Args:
                 year (str)
                 league (str)
@@ -553,9 +554,84 @@ class fbref():
                         away
                             xg
                             link team stats
+                            team stats : TeamInfos(self,  team: str, league : str)
+                            players : Players(self, team: str, league: str) 
                         home
                             xg
                             link team stats
+                            team stats : TeamInfos(self,  team: str, league : str)
+                            players : Players(self, team: str, league: str)
+                    score
+                        away
+                        home
+                    venue
+                    teams
+                        away
+                        home
+
+        """
+        return NotImplemented
+    
+    #====================================== Match report By team ==========================================#
+    def MatchReportByTeam(self, team : str, year : str , league : str) -> dict:
+        """MatchReportByTeam containing match report of one  club
+            Args:
+                year (str)
+                league (str)
+            Returns:
+
+                fixtures
+
+                    match link
+                    data-venue-time-only
+                    referre
+
+                    stats
+                        away
+                            xg
+                            link team stats
+                            team stats : TeamInfos(self,  team: str, league : str)
+                            players : Players(self, team: str, league: str) 
+                        home
+                            xg
+                            link team stats
+                            team stats : TeamInfos(self,  team: str, league : str)
+                            players : Players(self, team: str, league: str)
+                    score
+                        away
+                        home
+                    venue
+                    teams
+                        away
+                        home
+
+        """
+        return NotImplemented
+    #====================================== Head Head By Team ==========================================#
+    def HeadHeadByTeam(self, team : str, year : str , league : str) -> dict:
+        """HeadHeadByTeam containing  head to head of one  club
+            Args:
+                year (str)
+                league (str)
+            Returns:
+
+                fixtures
+
+                    match link
+                    data-venue-time-only
+                    referre
+
+                    stats
+                        away
+                            xg
+                            link team stats
+                            team stats : TeamInfos(self,  team: str, league : str)
+                            players : Players(self, team: str, league: str) 
+                        home
+                            xg
+                            link team stats
+                            team stats : TeamInfos(self,  team: str, league : str)
+                            players : Players(self, team: str, league: str)
                     score
                         away
                         home
@@ -748,7 +824,7 @@ class fbref():
 
 
     
-    #====================================== FixturesByClub ==========================================#
+    #====================================== Players ==========================================#
     def Players(self, team: str, league: str) -> pd.DataFrame:
         """
         Retrieve player statistics for a given team in a specific league.
@@ -792,6 +868,7 @@ class fbref():
             row.find('th', {'data-stat': "player"}).text: row.find('th', {'data-stat': "player"}).find('a')['href']
             for row in table.tbody.find_all('tr')
         }
+        ######## add additional stats of player ########
 
         # Convert the player URLs to a DataFrame
         players_urls = pd.DataFrame(list(data.items()), columns=['Player', 'Url'])

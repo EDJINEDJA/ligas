@@ -65,7 +65,27 @@ class testLigasfbrefApi(unittest.TestCase):
         response = self.api.TeamInfos(team ='Real Madrid', league = 'La Liga')
 
         self.assertIsInstance(response , dict)
+    
+    def test_matchreport(self):
+        response = self.api.MatchReport('2024-2025', 'Serie A')
 
+        self.assertIsInstance(response , dict)
+
+    def test_headhead(self):
+        response = self.api.HeadHead('2024-2025', 'Serie A')
+
+        self.assertIsInstance(response , dict)
+
+    def test_fixturesbyteam(self):
+        response = self.api.FixturesByTeam('inter','2024-2025', 'Serie A')
+
+        self.assertIsInstance(response , dict)
+    
+    def test_matches(self):
+        response = self.api.Matches('2024-08-20','2024-2025', 'Serie A')
+
+        self.assertIsInstance(response , dict)
+    
 
 if __name__ == "__main__":
     unittest.main()

@@ -190,7 +190,7 @@ def get_proxy() -> dict[str, str]:
 def check_proxy(proxy: dict) -> bool:
     """Check if proxy is working."""
     try:
-        r0 = requests.get("https://ipinfo.io/json", proxies=proxy, timeout=15)
+        r0 = requests.get("https://ipinfo.io/json", proxies=proxy, timeout=120)
         return r0.status_code == 200
     except Exception as error:
         logger.error(f"BAD PROXY: Reason: {error!s}\n")

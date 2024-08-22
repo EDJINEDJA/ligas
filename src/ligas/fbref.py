@@ -1,31 +1,28 @@
-from pathlib import Path
 import os
 import re
+import time 
 import random
+from pathlib import Path
 from datetime import datetime
 
-from typing import Sequence, List, Dict
 import requests
-from bs4 import BeautifulSoup
-from io import StringIO
 import threading
-import time 
 import numpy as np
 import pandas as pd
+from io import StringIO
+from bs4 import BeautifulSoup
+from typing import Sequence, List, Dict
 
 from .exceptions import (FbrefRequestException, FbrefRateLimitException, 
-        FbrefInvalidLeagueException, FbrefInvalidYearException, FbrefInvalidSeasonsException, FbrefInvalidTeamException)
-from .entity_config import Head2Head, SeasonUrls,CurrentSeasonUrls, TopScorers, BestScorer
-from .utils import compositions
-from .utils import browserHeaders
-from .utils import browser
-
-from .logger import logger
+        FbrefInvalidLeagueException, FbrefInvalidYearException, 
+        FbrefInvalidSeasonsException, FbrefInvalidTeamException)
+from .entity_config import SeasonUrls
+from .utils import (compositions, browserHeaders, browser, get_proxy)
 
 cuurentYear = datetime.now().year
 validLeagues = [league for league in compositions.keys()]
-webBrowser = random.choice(browser)
-header = browserHeaders.get(webBrowser)
+# Retrieve a proxy if available
+proxy = get_proxy()
 
 class fbref():
     def __init__(self, wait_time :int = 10, baseurl : str = 'https://fbref.com/') -> None:
@@ -37,15 +34,21 @@ class fbref():
     def _get(self, url : str) -> requests.Response:
 
         """
-            call _get create an instance of requests
-            Args:
-                url (str): is the the endpoint of fbref website 
-            Returns:
-                object (requests.Response): return the response
-        """
-       
+        Call `_get` creates an instance of requests using an optional proxy.
         
-        response = requests.get(url=url, headers = header)
+        Args:
+            url (str): The endpoint of the FBref website.
+        
+        Returns:
+            object (requests.Response): The HTTP response object.
+        """
+
+        # Choose a random browser header if needed
+        webBrowser = random.choice(browser)
+        header = browserHeaders.get(webBrowser)
+            
+        response = requests.get(url=url, headers = header, proxies=proxy if proxy else None)
+
         wait_thread = threading.Thread(target=self._wait)
         wait_thread.start()
 

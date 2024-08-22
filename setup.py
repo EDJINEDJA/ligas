@@ -15,7 +15,7 @@ class CustomInstallCommand(install):
 with codecs.open(os.path.join(BASEDIR, "README.md"), encoding="utf-8") as fh:
     long_description = fh.read()
 
-VERSION = "0.1.0"
+VERSION = "2.1.0"
 SRC_REPO = "ligas"
 DESCRIPTION = 'Streaming video data via networks'
 LONG_DESCRIPTION = 'A package that allows to build simple streams of video, audio and camera data.'

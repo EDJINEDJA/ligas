@@ -11,10 +11,11 @@ import yaml
 from box import ConfigBox
 from box.exceptions import BoxValueError
 from ensure import ensure_annotations
+import requests
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from ligas import logger
+from .logger import logger
 
 @ensure_annotations
 def read_yaml(path_to_yaml: Path) -> ConfigBox:
@@ -142,6 +143,58 @@ def copy(source :str, destination: str, verbose=True):
     if verbose:
         logger.info(f"file successfuly copied from {os.path.dirname(source)} to {os.path.dirname(destination)}")
 
+#=============================================== Proxies =================================================================
+
+def get_proxy() -> dict[str, str]:
+    """Return a public proxy."""
+    # list of free proxy apis
+    # protocols: http, https, socks4 and socks5
+    list_of_proxy_content = [
+        "https://proxylist.geonode.com/api/proxy-list?sort_by=lastChecked&sort_type=desc",
+    ]
+
+    # extracting json data from this list of proxies
+    full_proxy_list = []
+    for proxy_url in list_of_proxy_content:
+        proxy_json = json.loads(requests.get(proxy_url).text)["data"]
+        full_proxy_list.extend(proxy_json)
+
+        if not full_proxy_list:
+            logger.info("There are currently no proxies available. Exiting...")
+            return {}
+        logger.info(f"Found {len(full_proxy_list)} proxy servers. Checking...")
+
+    # creating proxy dict
+    final_proxy_list = []
+    for proxy in full_proxy_list:
+        protocol = proxy["protocols"][0]
+        ip_ = proxy["ip"]
+        port = proxy["port"]
+
+        proxy = {
+            "https": protocol + "://" + ip_ + ":" + port,
+            "http": protocol + "://" + ip_ + ":" + port,
+        }
+
+        final_proxy_list.append(proxy)
+
+    # trying proxy
+    for proxy in final_proxy_list:
+        if check_proxy(proxy):
+            return proxy
+
+    logger.info("There are currently no proxies available. Exiting...")
+    return {}
+
+
+def check_proxy(proxy: dict) -> bool:
+    """Check if proxy is working."""
+    try:
+        r0 = requests.get("https://ipinfo.io/json", proxies=proxy, timeout=15)
+        return r0.status_code == 200
+    except Exception as error:
+        logger.error(f"BAD PROXY: Reason: {error!s}\n")
+        return False
 #=============================================== Compositions=================================================================
 
 compositions = {

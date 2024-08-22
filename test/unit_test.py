@@ -2,7 +2,7 @@ import unittest
 import requests
 import pytest
 from ligas import fbref
-from ligas.entity_config import Head2Head, SeasonUrls, BestScorer, TopScorers
+from ligas.entity_config import SeasonUrls
 from typing import Sequence, List, Dict
 import pandas as pd
 

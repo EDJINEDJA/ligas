@@ -34,214 +34,341 @@ class fbref():
       
     
     # ====================================== request http ==========================================#
-    def _get(self, url : str) -> requests.Response:
+    def _get(self, url: str) -> requests.Response:
+        """
+        Sends a GET request to the specified URL and handles potential HTTP errors.
 
+        This method is responsible for sending an HTTP GET request to the specified URL
+        (typically an endpoint on the FBref website). It initiates a request using the
+        `requests` library, handles rate limiting and certain HTTP errors, and starts
+        a waiting thread to manage delays between requests.
+
+        Args:
+            url (str): The URL endpoint to which the GET request should be sent. This
+                    is usually an endpoint from the FBref website.
+
+        Returns:
+            requests.Response: The HTTP response object resulting from the GET request.
+                            This object contains the server's response to the HTTP request,
+                            including the status code, headers, and content.
+
+        Raises:
+            FbrefRateLimitException: If the server responds with a 429 status code,
+                                    indicating that the rate limit has been exceeded.
+            FbrefRequestException: If the server responds with a 404 or 504 status code,
+                                indicating a "Not Found" or "Gateway Timeout" error,
+                                respectively.
         """
-            call _get create an instance of requests
-            Args:
-                url (str): is the the endpoint of fbref website 
-            Returns:
-                object (requests.Response): return the response
-        """
-       
+    
+        response = requests.get(url=url, headers=header)
         
-        response = requests.get(url=url, headers = header)
+        # Start a thread to handle waiting time between requests
         wait_thread = threading.Thread(target=self._wait)
         wait_thread.start()
 
+        # Check the status code of the response and handle errors
         status = response.status_code
 
         if status == 429:
-            raise FbrefRateLimitException()
- 
-        if status in set([404, 504]) :
-            raise  FbrefRequestException()
-        
+            raise FbrefRateLimitException()  # Raised when too many requests are sent
+
+        if status in {404, 504}:
+            raise FbrefRequestException()  # Raised for Not Found or Gateway Timeout errors
+
         return response
+
     
     # ====================================== Waiting time to avoid rate limit error ====================#
     def _wait(self):
         """
-            Defining a waiting time for avoid rate limit 
+        Implements a waiting period to avoid triggering rate limit errors.
+
+        This method pauses the execution of the program for a specified amount of time,
+        defined by `self.wait_time`. It is primarily used to prevent sending too many
+        requests in a short period, which could result in rate limiting by the server.
+
+        The method should be invoked before making HTTP requests to ensure compliance
+        with the server's request rate policies.
+
+        Args:
+            None
+
+        Returns:
+            None
         """
         time.sleep(self.wait_time)
+
     
     # ====================================== get_current_seasons ==========================================#
     def get_valid_seasons(self, league: str) -> SeasonUrls:
         """
-        Retrieves all valid years and their corresponding URLs for a specified competition.
+        Retrieves all valid seasons and their corresponding URLs for a specified league.
+
+        This method fetches a list of valid seasons (years) and their associated URLs from the FBref website
+        for a given football league. It first validates the input league, then sends an HTTP request to fetch
+        the season data, and finally parses the response to extract the relevant information.
 
         Args:
-            league : str
-                The league for which to obtain valid seasons. Examples include "EPL" and "La Liga". 
-                For a full list of options, import `compositions` from the FBref module and check the keys.
+            league (str): 
+                The league for which to obtain valid seasons. This should be a string representing the league name 
+                or abbreviation, such as "EPL" for the English Premier League or "La Liga" for the Spanish league.
+                To see all valid league options, import `compositions` from the FBref module and examine the keys.
 
         Returns:
-            Season and URLs : SeasonUrls[dict]
-                A dictionary in the format {year: URL, ...}, where URLs should be prefixed with "https://fbref.com" 
+            SeasonUrls: 
+                A `SeasonUrls` object containing a dictionary where the keys are the season years (as strings) and the values 
+                are the corresponding URLs (as relative paths). These URLs need to be prefixed with "https://fbref.com" 
                 to form a complete link.
+
+        Raises:
+            TypeError: 
+                If the `league` argument is not a string.
+
+            FbrefInvalidLeagueException: 
+                If the provided league is not recognized or is not included in the list of valid leagues.
         """
 
+        # Ensure the league parameter is a string
         if not isinstance(league, str):
-            raise  TypeError('`league` must be a str eg: Champions League .')
-        
-        
+            raise TypeError('`league` must be a str, e.g., "Champions League".')
 
+        # Ensure the league is valid by checking against the known valid leagues
         if league not in validLeagues:
             raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
 
+        # Get the URL for the league's history page from the compositions dictionary
         url = compositions[league]['history url']
+        
+        # Send a GET request to the URL and parse the content using BeautifulSoup
         r = self._get(url)
         soup = BeautifulSoup(r.content, 'html.parser')
 
+        # Extract the season years and their corresponding URLs
         seasonUrls = dict([
             (x.text, x.find('a')['href'])
             for x in soup.find_all('th', {'data-stat': True, 'class': True})
             if x.find('a') is not None
         ])
 
+        # Return the result wrapped in a SeasonUrls object
         return SeasonUrls(seasonUrls)
+
     
     #====================================== LeagueInfos ==========================================#
     
-    def LeagueInfos(self, year : str, league: str) -> dict:        
+    def LeagueInfos(self, year: str, league: str) -> dict:
         """
-        Retrieves league information for a given year and league name.
+        Retrieves detailed league information for a given year and league.
+
+        This method fetches specific information about a football league for a particular season (year).
+        It validates the league and year inputs, constructs the appropriate URL, sends a request, and then
+        parses the HTML content to extract the relevant league details.
 
         Args:
-            year (str): Desired year, which must not exceed the current year.
-                        Example: "2023-2024"
+            year (str): 
+                The desired season in the format "YYYY-YYYY". The year must not exceed the current year.
+                Example: "2023-2024".
+            
+            league (str): 
+                The league name or abbreviation for which to retrieve information. Examples include "EPL" 
+                for the English Premier League or "La Liga" for the Spanish league.
 
         Returns:
-            league_info (dict): 
-                A dictionary in the format {info_header: info}, where `info_header` 
-                represents the title of the information, and `info` is the corresponding detail.
-                A dictionary containing the following keys
-                'Governing Country': eg 'Spain' (country of the league)
-                'Level':  eg 'See League Structure' (level of the league)
-                'Gender': ': Male' ( gender)
-                'Most Goals': 'Robert Lewandowski', ( player name)
-                'Most Assists': 'Iker Almena'( assist name)
-                'Most Clean Sheets': 'Karl Jakob Hein' ( name of the clean sheet)
-                'Big 5': 'View Big 5 European Leagues together' ( the level of the league)
-                'league logo': 'https://cdn.ssref.net/req/202408161/tlogo/fb/12.png' ( logo of the league)
+            dict: 
+                A dictionary containing various pieces of information about the league. The dictionary includes
+                the following keys:
+                
+                - 'Governing Country': The country where the league is governed (e.g., 'Spain').
+                - 'Level': The level of the league (e.g., 'See League Structure').
+                - 'Gender': The gender category of the league (e.g., 'Male').
+                - 'Most Goals': The player with the most goals in that season (e.g., 'Robert Lewandowski').
+                - 'Most Assists': The player with the most assists in that season (e.g., 'Iker Almena').
+                - 'Most Clean Sheets': The goalkeeper with the most clean sheets (e.g., 'Karl Jakob Hein').
+                - 'Big 5': A statement if the league is part of the "Big 5" European leagues (e.g., 'View Big 5 European Leagues together').
+                - 'league logo': The URL of the league's logo (e.g., 'https://cdn.ssref.net/req/202408161/tlogo/fb/12.png').
+
+        Raises:
+            TypeError: 
+                If the `league` argument is not a string.
+            
+            FbrefInvalidLeagueException: 
+                If the provided league is not recognized or not in the list of valid leagues.
+            
+            FbrefInvalidYearException: 
+                If the provided year is beyond the current year.
+
         """
+
+        # Validate that the league parameter is a string
         if not isinstance(league, str):
-           raise  TypeError('`league` must be a str eg: Champions League .')
-        
+            raise TypeError('`league` must be a str, e.g., "Champions League".')
+
+        # Validate that the league is in the list of valid leagues
         if league not in validLeagues:
             raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
 
+        # Validate that the year does not exceed the current year
         if int(year.split('-')[-1]) > int(cuurentYear):
             raise FbrefInvalidYearException(year, 'FBref', cuurentYear)
         
+        # Retrieve the valid seasons for the league and get the URL for the specified year
         urls = self.get_valid_seasons(league)
         url = urls.seasonUrls[year]
         
-        response = requests.get(os.path.join(self.baseurl,url[1:]))
+        # Send a GET request to the constructed URL and parse the content
+        response = requests.get(os.path.join(self.baseurl, url[1:]))
         soup = BeautifulSoup(response.content, 'html.parser')
-        r = soup.find('div', attrs={ 'id':'meta'})
+        
+        # Extract league information from the HTML content
+        r = soup.find('div', attrs={'id': 'meta'})
         
         leagueInfos = {
-                        p.find('strong').text.strip(':'): 
-                        (p.find('a').text if p.find('a') is not None else p.find('span').text 
-                         if p.find('span') is not None else p.get_text(strip=True).replace(p.find('strong').text, '').strip())
-                        for p in r.find_all('p')
-                        if p.find('strong') is not None
-                    }
-        leagueInfos['logo'] = r.find('img', attrs={'class':'teamlogo'})['src']
+            p.find('strong').text.strip(':'): 
+            (p.find('a').text if p.find('a') is not None else p.find('span').text 
+            if p.find('span') is not None else p.get_text(strip=True).replace(p.find('strong').text, '').strip())
+            for p in r.find_all('p')
+            if p.find('strong') is not None
+        }
+        
+        # Extract and add the league logo to the dictionary
+        leagueInfos['league logo'] = r.find('img', attrs={'class': 'teamlogo'})['src']
         
         return leagueInfos
+
         
     #====================================== get_top_scorers ==========================================#
-    
     def TopScorers(self, league: str) -> dict:
         """
         Retrieves the top scorer's statistics for a given league and season.
 
+        This method fetches information about the top goal scorer(s) for a specific football league. 
+        It validates the league input, retrieves the historical data for that league, and then parses 
+        the HTML content to extract details about the top scorer, including their name, goals, club, and links to more statistics.
+
         Args:
             league (str): 
-                The league identifier for which to obtain TopScorers.
-                Examples include "EPL" (English Premier League) and "La Liga" (Spain's top division).
-            currentSeason (str): 
-                The season for which to retrieve the top scorer's statistics.
-                The format is typically "YYYY-YYYY", e.g., "2023-2024".
+                The league identifier for which to obtain the top scorer's statistics.
+                Examples include "EPL" for the English Premier League and "La Liga" for Spain's top division.
 
         Returns:
             dict: 
-                A dictionary containing the following keys:
-                - 'top_scorer': The name of the top scorer.
-                - 'goals': The number of goals scored by the top scorer.
-                - 'stats_link': The direct link to the detailed statistics of the top scorer.
-                - 'club': The club the top scorer played for during that season.
-                - 'top_scorer_link': The link to the player's profile on the website.
+                A dictionary containing details about the top scorers for each season within the given league. 
+                The structure of the dictionary is as follows:
+                
+                - '{league} season {year}': {
+                    - 'year': The season year (e.g., '2023-2024').
+                    - 'top_scorer': The name of the top scorer for that season.
+                    - 'goals': The number of goals scored by the top scorer.
+                    - 'stats_link': The direct link to the detailed statistics of the top scorer on the website.
+                    - 'club': The club for which the top scorer played during that season.
+                }
 
         Raises:
-            ValueError: If no data is found for the given league and season.
-            TypeError: If the required table is not found on the page.
-            """
-        if not isinstance(league, str):
-           raise  TypeError('`league` must be a str eg: Champions League .')
-        
-        if league not in validLeagues:
-           raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
+            ValueError: 
+                If no data is found for the given league.
+            
+            TypeError: 
+                If the required table is not found on the page.
+            
+            FbrefInvalidLeagueException: 
+                If the provided league is not recognized or is not in the list of valid leagues.
+        """
 
+        # Validate that the league parameter is a string
+        if not isinstance(league, str):
+            raise TypeError('`league` must be a str, e.g., "Champions League".')
+
+        # Validate that the league is in the list of valid leagues
+        if league not in validLeagues:
+            raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
+
+        # Retrieve the URL for the league's historical data
         url = compositions[league]['history url']
         r = self._get(url)
         soup = BeautifulSoup(r.content, 'html.parser')
-     
+
+        # Extract top scorer information from the parsed HTML
         top_scorers = {
-                f'{league} season {row.find("th", {"data-stat": "year_id"}).text.strip()}': {
-                    'year': row.find("th", {"data-stat": "year_id"}).text.strip(),
-                    'top_scorer': row.find('td', {'data-stat': 'top_scorers'}).find('a').text.strip(),
-                    'goals': row.find('td', {'data-stat': 'top_scorers'}).find('span').text.strip(),
-                    'stats_link': self.baseurl + row.find('td', {'data-stat': 'top_scorers'}).find('a')['href'],
-                    'club': row.find('td', {'data-stat': 'champ'}).text.split('-')[0].strip() if row.find('td', {'data-stat': 'champ'}) else "Unknown"
-                }
-                for row in soup.find_all('tr')
-                if row.find('td', {'data-stat': 'top_scorers'}) and row.find('td', {'data-stat': 'top_scorers'}).find('a')
+            f'{league} season {row.find("th", {"data-stat": "year_id"}).text.strip()}': {
+                'year': row.find("th", {"data-stat": "year_id"}).text.strip(),
+                'top_scorer': row.find('td', {'data-stat': 'top_scorers'}).find('a').text.strip(),
+                'goals': row.find('td', {'data-stat': 'top_scorers'}).find('span').text.strip(),
+                'stats_link': self.baseurl + row.find('td', {'data-stat': 'top_scorers'}).find('a')['href'],
+                'club': row.find('td', {'data-stat': 'champ'}).text.split('-')[0].strip() 
+                        if row.find('td', {'data-stat': 'champ'}) else "Unknown"
             }
+            for row in soup.find_all('tr')
+            if row.find('td', {'data-stat': 'top_scorers'}) and row.find('td', {'data-stat': 'top_scorers'}).find('a')
+        }
+
+        if not top_scorers:
+            raise ValueError(f"No top scorer data found for the league: {league}")
+
         return top_scorers
+
     
     #====================================== TopScorer ==========================================#
 
     def TopScorer(self, league: str, currentSeason: str) -> dict:
         """
-        Scrapes the best scorer's statistics for a specified league and season.
+        Scrapes the top scorer's detailed statistics for a specified league and season.
+
+        This function fetches the top scorer's information for a specific league and season and retrieves detailed statistics 
+        from the associated player's stats page on FBref.
 
         Args:
-            league (str): The league identifier (e.g., "EPL", "La Liga").
-            currentSeason (str): The season to retrieve (e.g., "2023-2024").
+            league (str): 
+                The league identifier for which to obtain the top scorer's statistics. 
+                Examples include "EPL" (English Premier League) and "La Liga" (Spain's top division).
+            
+            currentSeason (str): 
+                The season for which to retrieve the top scorer's statistics. 
+                The format is typically "YYYY-YYYY", e.g., "2023-2024".
 
         Returns:
-            dict: A dictionary containing the top scorer's name, goals, stats link, and club.
+            dict: 
+                A dictionary containing the top scorer's name, number of goals, stats link, club, and detailed statistics. 
+                The structure of the dictionary is as follows:
+                
+                - 'top_scorer': The name of the top scorer.
+                - 'goals': The number of goals scored by the top scorer.
+                - 'stats_link': The direct link to the detailed statistics of the top scorer.
+                - 'club': The club the top scorer played for during that season.
+                - 'detailed_stats': A list of dictionaries containing detailed statistics for the top scorer, where each dictionary 
+                contains:
+                    - 'statistic': The name of the statistic.
+                    - 'per90': The per90 value for that statistic.
+                    - 'percentile': The percentile ranking for that statistic.
 
         Raises:
-            ValueError: If no data is found for the given league and season.
-            TypeError: If the stats table is not found on the page.
+            ValueError: 
+                If no data is found for the given league and season.
+            
+            TypeError: 
+                If the required statistics table is not found on the player's stats page.
         """
-        # Fetch the top scorers data for the given league
+
+        # Fetch the top scorers data for the given league using the TopScorers method
         response = self.TopScorers(league=league)
         key = f'{league} season {currentSeason}'
 
-        # Check if the season data exists
+        # Check if the season data exists in the fetched response
         if key not in response:
-            # Raise an error if no data is found for the given season
-            raise FbrefInvalidSeasonsException(currentSeason, 'Fbref', league,  response.keys() )
+            raise FbrefInvalidSeasonsException(currentSeason, 'Fbref', league, response.keys())
 
+        # Extract the statistics link for the top scorer
         stats_link = response[key]['stats_link']
         
-        # Fetch and parse the top scorer's stats page
+        # Fetch and parse the top scorer's detailed statistics page
         r = self._get(stats_link)
-
         soup = BeautifulSoup(r.content, 'html.parser')
 
+        # Locate the table containing detailed statistics for forwards (FW)
         table = soup.find('table', {'id': 'scout_summary_FW'})
-
         if not table:
             raise TypeError("The statistics table was not found on the page.")
 
-        # Extract statistics using list comprehension
+        # Extract detailed statistics using list comprehension, skipping the header row
         stats = [
             {
                 'statistic': row.find('th', {'data-stat': 'statistic'}).text.strip(),
@@ -251,7 +378,7 @@ class fbref():
             for row in table.find_all('tr')[1:]  # Skip the header row
         ]
 
-        # Return the extracted data in a structured dictionary
+        # Return a structured dictionary containing the top scorer's details and statistics
         return {
             'top_scorer': response[key]['top_scorer'],
             'goals': response[key]['goals'],
@@ -259,144 +386,68 @@ class fbref():
             'club': response[key]['club'],
             'detailed_stats': stats
         }
+
     
     #====================================== Fixtures ==========================================#
-    def Fixtures(self, year : str , league : str) -> dict:
-        """Fixtures containing match report and head to head
-            Args:
-                year (str)
-                league (str)
-            Returns:
+    def Fixtures(self, year: str, league: str) -> dict:
+        """
+        Retrieves match fixtures, including match reports, head-to-head details, and various statistics for a specific league and season.
 
-                fixtures
+        Args:
+            year (str): The season for which to retrieve fixtures (e.g., "2023-2024").
+            league (str): The league identifier (e.g., "EPL", "La Liga").
 
-                    match link
-                    data-venue-time
-                    referre
+        Returns:
+            dict: A dictionary containing match fixtures, where each fixture includes:
+                - 'match link': The URL linking to the match report or head-to-head details.
+                - 'match-date': The date of the match.
+                - 'data-venue-time': The time and venue details.
+                - 'referee': The referee officiating the match.
+                - 'stats': A nested dictionary containing:
+                    - 'home': Statistics for the home team.
+                        - 'xg': The expected goals (xG) for the home team.
+                        - 'link team stats': URL linking to the home team's stats page.
+                    - 'away': Statistics for the away team.
+                        - 'xg': The expected goals (xG) for the away team.
+                        - 'link team stats': URL linking to the away team's stats page.
+                - 'Attendance': The match attendance.
+                - 'score': A nested dictionary containing:
+                    - 'home': The score for the home team.
+                    - 'away': The score for the away team.
+                - 'venue': The venue where the match was played.
+                - 'teams': A nested dictionary containing:
+                    - 'home': The name of the home team.
+                    - 'away': The name of the away team.
 
-                    stats
-                        away
-                            xg
-                            link team stats
-                        home
-                            xg
-                            link team stats
-                    score
-                        away
-                        home
-                    venue
-                    teams
-                        away
-                        home
-
+        Raises:
+            TypeError: If the `league` is not a string.
+            FbrefInvalidLeagueException: If the `league` is not a valid league.
+            FbrefInvalidYearException: If the specified `year` exceeds the current year.
         """
 
+        # Ensure the league is a valid string
         if not isinstance(league, str):
-           raise  TypeError('`league` must be a str eg: Champions League .')
-    
-        if league not in validLeagues:
-           raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
-
-        if int(year.split('-')[-1]) > int(cuurentYear):
-            raise FbrefInvalidYearException(year, 'FBref', cuurentYear)
+            raise TypeError('`league` must be a str eg: Champions League.')
         
-        urls = self.get_valid_seasons(league)
-                
-        season_link = urls.seasonUrls[year]
-
-        fixtures_url = self.baseurl + '/'.join(season_link.split('/')[:-1] + ['schedule', '-'.join(season_link.split('/')[-1].split('-')[:-1]) + '-Scores-and-Fixtures'])
-
-        r = self._get(fixtures_url)
-
-        soup = BeautifulSoup(r.content, 'html.parser')
-
-        table = soup.find('table')
-
-      # Extract data from each row of matches using list comprehension
-        fixtures = {league + "-Scores-and-Fixture": [
-        {
-            'match link': self.baseurl + row.find('td', {'data-stat': 'date'}).find('a')['href'] if row.find('td', {'data-stat': 'date'}) and row.find('td', {'data-stat': 'date'}).find('a') else np.nan,
-            'match-date': row.find('td', {'data-stat': 'date'}).text.strip() if row.find('td', {'data-stat': 'date'}) else np.nan,
-            'data-venue-time': row.find('td', {'data-stat': 'start_time'}).find('span', {'data-venue-time': True})['data-venue-time'] if row.find('td', {'data-stat': 'start_time'}) and row.find('td', {'data-stat': 'start_time'}).find('span', {'data-venue-time': True}) else np.nan,
-            'referee': row.find('td', {'data-stat': 'referee'}).text.strip() if row.find('td', {'data-stat': 'referee'}) else np.nan,
-            'stats': {
-                'home': {
-                    'xg': row.find('td', {'data-stat': 'home_xg'}).text.strip() if row.find('td', {'data-stat': 'home_xg'}) else np.nan,
-                    'link team stats': self.baseurl + row.find('td', {'data-stat': 'home_team'}).find('a')['href'] if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan
-                },
-                'away': {
-                    'xg': row.find('td', {'data-stat': 'away_xg'}).text.strip() if row.find('td', {'data-stat': 'away_xg'}) else np.nan,
-                    'link team stats': self.baseurl + row.find('td', {'data-stat': 'away_team'}).find('a')['href'] if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan
-                }
-            },
-            'Attendance': row.find('td', {'data-stat': 'attendance'}).text.strip() if row.find('td', {'data-stat': 'attendance'}) else np.nan,
-            'score': {
-                'home': (row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[0].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan),
-                'away': (row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[1].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan)
-            },
-            'venue': row.find('td', {'data-stat': 'venue'}).text.strip() if row.find('td', {'data-stat': 'venue'}) else np.nan,
-            'teams': {
-                'home': row.find('td', {'data-stat': 'home_team'}).find('a').text.strip() if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan,
-                'away': row.find('td', {'data-stat': 'away_team'}).find('a').text.strip() if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan
-            }
-        }
-        for row in table.find_all('tr') 
-        if row.find('td', {'data-stat': 'match_report'}) and any(term in row.find('td', {'data-stat': 'match_report'}).text for term in ['Head-to-Head', 'Match Report'])
-    ]
-        }
-
-        return fixtures
-
-
-    #====================================== MatchReport ==========================================#
-    def MatchReport(self, year : str , league : str) -> dict:
-        """Fixtures containing match report and head to head
-            Args:
-                year (str)
-                league (str)
-            Returns:
-
-                fixtures
-
-                    match link
-                    data-venue-time-only
-                    referre
-
-                    stats
-                        away
-                            xg
-                            link team stats
-                        home
-                            xg
-                            link team stats
-                    score
-                        away
-                        home
-                    venue
-                    teams
-                        away
-                        home
-
-            """
-        if not isinstance(league, str):
-            raise  TypeError('`league` must be a str eg: Champions League .')
-        
+        # Check if the league is valid
         if league not in validLeagues:
             raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
 
+        # Check if the specified year is valid
         if int(year.split('-')[-1]) > int(cuurentYear):
             raise FbrefInvalidYearException(year, 'FBref', cuurentYear)
-            
+        
+        # Retrieve the valid seasons and construct the fixtures URL
         urls = self.get_valid_seasons(league)
-                
         season_link = urls.seasonUrls[year]
 
         fixtures_url = self.baseurl + '/'.join(season_link.split('/')[:-1] + ['schedule', '-'.join(season_link.split('/')[-1].split('-')[:-1]) + '-Scores-and-Fixtures'])
 
+        # Fetch the fixtures page
         r = self._get(fixtures_url)
-
         soup = BeautifulSoup(r.content, 'html.parser')
 
+        # Locate the table containing the fixtures
         table = soup.find('table')
 
         # Extract data from each row of matches using list comprehension
@@ -418,8 +469,8 @@ class fbref():
                 },
                 'Attendance': row.find('td', {'data-stat': 'attendance'}).text.strip() if row.find('td', {'data-stat': 'attendance'}) else np.nan,
                 'score': {
-                    'home': (row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[0].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan),
-                    'away': (row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[1].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan)
+                    'home': row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[0].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan,
+                    'away': row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[1].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan
                 },
                 'venue': row.find('td', {'data-stat': 'venue'}).text.strip() if row.find('td', {'data-stat': 'venue'}) else np.nan,
                 'teams': {
@@ -428,60 +479,159 @@ class fbref():
                 }
             }
             for row in table.find_all('tr') 
-            if row.find('td', {'data-stat': 'match_report'}) and 'Match Report' in row.find('td', {'data-stat': 'match_report'}).text
-        ]
-            }
+            if row.find('td', {'data-stat': 'match_report'}) and any(term in row.find('td', {'data-stat': 'match_report'}).text for term in ['Head-to-Head', 'Match Report'])
+        ]}
 
         return fixtures
+
+
+
+    #====================================== MatchReport ==========================================#
+    def MatchReport(self, year: str, league: str) -> dict:
+        """
+        Retrieves detailed match report data for a specific league and season.
+
+        Args:
+            year (str): The season year (e.g., "2023-2024") for which to retrieve match reports.
+            league (str): The league for which match reports are to be retrieved (e.g., "Premier League").
+
+        Returns:
+            dict: A dictionary containing match report data with the following structure:
+                - match link (str): The URL to the match report.
+                - match-date (str): The date of the match.
+                - data-venue-time (str): The time and venue details of the match.
+                - referee (str): The name of the referee officiating the match.
+                - stats (dict): A nested dictionary containing team statistics:
+                    - home (dict): Home team statistics:
+                        - xg (str): Expected goals (xG) for the home team.
+                        - link team stats (str): URL linking to the home team's stats page.
+                    - away (dict): Away team statistics:
+                        - xg (str): Expected goals (xG) for the away team.
+                        - link team stats (str): URL linking to the away team's stats page.
+                - Attendance (str): The attendance figure for the match.
+                - score (dict): A dictionary containing the final score:
+                    - home (str): Final score for the home team.
+                    - away (str): Final score for the away team.
+                - venue (str): The name of the venue where the match was played.
+                - teams (dict): A dictionary containing the team names:
+                    - home (str): Name of the home team.
+                    - away (str): Name of the away team.
+        """
+
+        # Validate input types and values
+        if not isinstance(league, str):
+            raise TypeError('`league` must be a str, e.g., "Champions League".')
+        
+        # Validate league against allowed leagues
+        if league not in validLeagues:
+            raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
+
+        # Validate the year does not exceed the current year
+        if int(year.split('-')[-1]) > int(cuurentYear):
+            raise FbrefInvalidYearException(year, 'FBref', cuurentYear)
+
+        # Construct the season link and fixtures URL
+        urls = self.get_valid_seasons(league)
+        season_link = urls.seasonUrls[year]
+        fixtures_url = self.baseurl + '/'.join(season_link.split('/')[:-1] + ['schedule', '-'.join(season_link.split('/')[-1].split('-')[:-1]) + '-Scores-and-Fixtures'])
+
+        # Retrieve and parse the page
+        r = self._get(fixtures_url)
+        soup = BeautifulSoup(r.content, 'html.parser')
+        table = soup.find('table')
+
+        # Extract data from each row of matches
+        fixtures = {
+            league + "-Scores-and-Fixture": [
+                {
+                    'match link': self.baseurl + row.find('td', {'data-stat': 'date'}).find('a')['href'] if row.find('td', {'data-stat': 'date'}) and row.find('td', {'data-stat': 'date'}).find('a') else np.nan,
+                    'match-date': row.find('td', {'data-stat': 'date'}).text.strip() if row.find('td', {'data-stat': 'date'}) else np.nan,
+                    'data-venue-time': row.find('td', {'data-stat': 'start_time'}).find('span', {'data-venue-time': True})['data-venue-time'] if row.find('td', {'data-stat': 'start_time'}) and row.find('td', {'data-stat': 'start_time'}).find('span', {'data-venue-time': True}) else np.nan,
+                    'referee': row.find('td', {'data-stat': 'referee'}).text.strip() if row.find('td', {'data-stat': 'referee'}) else np.nan,
+                    'stats': {
+                        'home': {
+                            'xg': row.find('td', {'data-stat': 'home_xg'}).text.strip() if row.find('td', {'data-stat': 'home_xg'}) else np.nan,
+                            'link team stats': self.baseurl + row.find('td', {'data-stat': 'home_team'}).find('a')['href'] if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan
+                        },
+                        'away': {
+                            'xg': row.find('td', {'data-stat': 'away_xg'}).text.strip() if row.find('td', {'data-stat': 'away_xg'}) else np.nan,
+                            'link team stats': self.baseurl + row.find('td', {'data-stat': 'away_team'}).find('a')['href'] if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan
+                        }
+                    },
+                    'Attendance': row.find('td', {'data-stat': 'attendance'}).text.strip() if row.find('td', {'data-stat': 'attendance'}) else np.nan,
+                    'score': {
+                        'home': row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[0].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan,
+                        'away': row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[1].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan
+                    },
+                    'venue': row.find('td', {'data-stat': 'venue'}).text.strip() if row.find('td', {'data-stat': 'venue'}) else np.nan,
+                    'teams': {
+                        'home': row.find('td', {'data-stat': 'home_team'}).find('a').text.strip() if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan,
+                        'away': row.find('td', {'data-stat': 'away_team'}).find('a').text.strip() if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan
+                    }
+                }
+                for row in table.find_all('tr')
+                if row.find('td', {'data-stat': 'match_report'}) and 'Match Report' in row.find('td', {'data-stat': 'match_report'}).text
+            ]
+        }
+
+        return fixtures
+
 
     #====================================== Head Head ==========================================#
-    def HeadHead(self, year : str , league : str) -> dict:
-        """Fixtures containing match report and head to head
-            Args:
-                year (str)
-                league (str)
-            Returns:
-
-                fixtures
-
-                    match link
-                    data-venue-time-only
-                    referre
-
-                    stats
-                        away
-                            link team stats
-                        home
-                            link team stats
-                    venue
-                    teams
-                        away
-                        home
-
+    def HeadHead(self, year: str, league: str) -> dict:
         """
+        Retrieves head-to-head match data for a specific league and season.
+
+        Args:
+            year (str): The season year (e.g., "2023-2024") for which to retrieve head-to-head match data.
+            league (str): The league for which head-to-head data is to be retrieved (e.g., "Premier League").
+
+        Returns:
+            dict: A dictionary containing head-to-head match data with the following structure:
+                - match link (str): The URL to the match report.
+                - match-date (str): The date of the match.
+                - data-venue-time (str): The time and venue details of the match.
+                - referee (str): The name of the referee officiating the match.
+                - stats (dict): A nested dictionary containing team statistics:
+                    - home (dict): Home team statistics:
+                        - link team stats (str): URL linking to the home team's stats page.
+                    - away (dict): Away team statistics:
+                        - link team stats (str): URL linking to the away team's stats page.
+                - score (dict): A dictionary containing the final score:
+                    - home (str): Final score for the home team.
+                    - away (str): Final score for the away team.
+                - Attendance (str): The attendance figure for the match.
+                - venue (str): The name of the venue where the match was played.
+                - teams (dict): A dictionary containing the team names:
+                    - home (str): Name of the home team.
+                    - away (str): Name of the away team.
+        """
+
+        # Validate input types and values
         if not isinstance(league, str):
-            raise  TypeError('`league` must be a str eg: Champions League .')
-            
+            raise TypeError('`league` must be a str, e.g., "Champions League".')
+        
+        # Validate league against allowed leagues
         if league not in validLeagues:
             raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
 
+        # Validate the year does not exceed the current year
         if int(year.split('-')[-1]) > int(cuurentYear):
             raise FbrefInvalidYearException(year, 'FBref', cuurentYear)
-        
-        urls = self.get_valid_seasons(league)
-                
-        season_link = urls.seasonUrls[year]
 
+        # Construct the season link and fixtures URL
+        urls = self.get_valid_seasons(league)
+        season_link = urls.seasonUrls[year]
         fixtures_url = self.baseurl + '/'.join(season_link.split('/')[:-1] + ['schedule', '-'.join(season_link.split('/')[-1].split('-')[:-1]) + '-Scores-and-Fixtures'])
 
+        # Retrieve and parse the page
         r = self._get(fixtures_url)
-
         soup = BeautifulSoup(r.content, 'html.parser')
-
         table = soup.find('table')
 
-        # Extract data from each row of matches using list comprehension
-        fixtures = {league + "-Scores-and-Fixture": [
+        # Extract data from each row of matches
+        fixtures = {
+            league + "-Scores-and-Fixture": [
                 {
                     'match link': self.baseurl + row.find('td', {'data-stat': 'date'}).find('a')['href'] if row.find('td', {'data-stat': 'date'}) and row.find('td', {'data-stat': 'date'}).find('a') else np.nan,
                     'match-date': row.find('td', {'data-stat': 'date'}).text.strip() if row.find('td', {'data-stat': 'date'}) else np.nan,
@@ -489,17 +639,15 @@ class fbref():
                     'referee': row.find('td', {'data-stat': 'referee'}).text.strip() if row.find('td', {'data-stat': 'referee'}) else np.nan,
                     'stats': {
                         'home': {
-                            'xg': row.find('td', {'data-stat': 'home_xg'}).text.strip() if row.find('td', {'data-stat': 'home_xg'}) else np.nan,
                             'link team stats': self.baseurl + row.find('td', {'data-stat': 'home_team'}).find('a')['href'] if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan
                         },
                         'away': {
-                            'xg': row.find('td', {'data-stat': 'away_xg'}).text.strip() if row.find('td', {'data-stat': 'away_xg'}) else np.nan,
                             'link team stats': self.baseurl + row.find('td', {'data-stat': 'away_team'}).find('a')['href'] if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan
                         }
                     },
                     'score': {
-                        'home': (row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[0].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan),
-                        'away': (row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[1].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan)
+                        'home': row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[0].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan,
+                        'away': row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[1].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan
                     },
                     'Attendance': row.find('td', {'data-stat': 'attendance'}).text.strip() if row.find('td', {'data-stat': 'attendance'}) else np.nan,
                     'venue': row.find('td', {'data-stat': 'venue'}).text.strip() if row.find('td', {'data-stat': 'venue'}) else np.nan,
@@ -508,62 +656,70 @@ class fbref():
                         'away': row.find('td', {'data-stat': 'away_team'}).find('a').text.strip() if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan
                     }
                 }
-                for row in table.find_all('tr') 
+                for row in table.find_all('tr')
                 if row.find('td', {'data-stat': 'match_report'}) and 'Head-to-Head' in row.find('td', {'data-stat': 'match_report'}).text
             ]
-                }
+        }
 
         return fixtures
+
     #====================================== Matches ==========================================#
 
-    def Matches(self, date : str, year : str , league : str) -> dict:
-        """Fixtures containing matches of the date
-            Args:
-                date (str)
-                year (str)
-                league (str)
-            Returns:
-
-                fixtures
-
-                    match link
-                    data-venue-time-only
-                    referre
-
-                    stats
-                        away
-                            link team stats
-                        home
-                            link team stats
-                    venue
-                    teams
-                        away
-                        home
-
+    def Matches(self, date: str, year: str, league: str) -> dict:
         """
+        Retrieves fixtures for a specific date from a given league and season.
+
+        Args:
+            date (str): The date of the matches to retrieve (e.g., "2024-08-20").
+            year (str): The season year (e.g., "2023-2024") for which to retrieve match data.
+            league (str): The league for which to retrieve match data (e.g., "Premier League").
+
+        Returns:
+            dict: A dictionary containing match data with the following structure:
+                - match link (str): The URL to the match report.
+                - match-date (str): The date of the match.
+                - data-venue-time (str): The time and venue details of the match.
+                - referee (str): The name of the referee officiating the match.
+                - stats (dict): A nested dictionary containing team statistics:
+                    - home (dict): Home team statistics:
+                        - xg (str): Expected goals for the home team.
+                        - link team stats (str): URL linking to the home team's stats page.
+                    - away (dict): Away team statistics:
+                        - xg (str): Expected goals for the away team.
+                        - link team stats (str): URL linking to the away team's stats page.
+                - score (dict): A dictionary containing the final score:
+                    - home (str): Final score for the home team.
+                    - away (str): Final score for the away team.
+                - Attendance (str): The attendance figure for the match.
+                - venue (str): The name of the venue where the match was played.
+                - teams (dict): A dictionary containing the team names:
+                    - home (str): Name of the home team.
+                    - away (str): Name of the away team.
+        """
+
+        # Validate input types and values
         if not isinstance(league, str):
-            raise  TypeError('`league` must be a str eg: Champions League .')
-            
+            raise TypeError('`league` must be a str, e.g., "Champions League".')
+        
         if league not in validLeagues:
             raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
 
         if int(year.split('-')[-1]) > int(cuurentYear):
             raise FbrefInvalidYearException(year, 'FBref', cuurentYear)
-        
-        urls = self.get_valid_seasons(league)
-                
-        season_link = urls.seasonUrls[year]
 
+        # Construct the season link and fixtures URL
+        urls = self.get_valid_seasons(league)
+        season_link = urls.seasonUrls[year]
         fixtures_url = self.baseurl + '/'.join(season_link.split('/')[:-1] + ['schedule', '-'.join(season_link.split('/')[-1].split('-')[:-1]) + '-Scores-and-Fixtures'])
 
+        # Retrieve and parse the page
         r = self._get(fixtures_url)
-
         soup = BeautifulSoup(r.content, 'html.parser')
-
         table = soup.find('table')
 
-        # Extract data from each row of matches using list comprehension
-        fixtures = {league + "-Scores-and-Fixture": [
+        # Extract data from each row of matches
+        fixtures = {
+            league + "-Scores-and-Fixture": [
                 {
                     'match link': self.baseurl + row.find('td', {'data-stat': 'date'}).find('a')['href'] if row.find('td', {'data-stat': 'date'}) and row.find('td', {'data-stat': 'date'}).find('a') else np.nan,
                     'match-date': row.find('td', {'data-stat': 'date'}).text.strip() if row.find('td', {'data-stat': 'date'}) else np.nan,
@@ -580,8 +736,8 @@ class fbref():
                         }
                     },
                     'score': {
-                        'home': (row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[0].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan),
-                        'away': (row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[1].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan)
+                        'home': row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[0].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan,
+                        'away': row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[1].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan
                     },
                     'Attendance': row.find('td', {'data-stat': 'attendance'}).text.strip() if row.find('td', {'data-stat': 'attendance'}) else np.nan,
                     'venue': row.find('td', {'data-stat': 'venue'}).text.strip() if row.find('td', {'data-stat': 'venue'}) else np.nan,
@@ -590,72 +746,71 @@ class fbref():
                         'away': row.find('td', {'data-stat': 'away_team'}).find('a').text.strip() if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan
                     }
                 }
-                for row in table.find_all('tr') 
-                if row.find('td', {'data-stat': 'match_report'}) and any(term in row.find('td', {'data-stat': 'match_report'}).text for term in ['Head-to-Head', 'Match Report'])
-                # Filter matches for a given date
-        and     row.find('td', {'data-stat': 'date'}) and row.find('td', {'data-stat': 'date'}).text.strip() == date
+                for row in table.find_all('tr')
+                if row.find('td', {'data-stat': 'date'}) and row.find('td', {'data-stat': 'date'}).text.strip() == date
             ]
-                }
+        }
 
         return fixtures
- 
+
     #====================================== Fixture team ==========================================#
-    def FixturesByTeam(self, team : str, year : str , league : str) -> dict:
-        """FixtureTeam containing match report and head to head of one  club
-            Args:
-                year (str)
-                league (str)
-            Returns:
-
-                fixtures
-
-                    match link
-                    data-venue-time-only
-                    referre
-
-                    stats
-                        away
-                            xg
-                            link team stats
-                            team stats : TeamInfos(self,  team: str, league : str)
-                            players : Players(self, team: str, league: str) 
-                        home
-                            xg
-                            link team stats
-                            team stats : TeamInfos(self,  team: str, league : str)
-                            players : Players(self, team: str, league: str)
-                    score
-                        away
-                        home
-                    venue
-                    teams
-                        away
-                        home
-
+    def FixturesByTeam(self, team: str, year: str, league: str) -> dict:
         """
+        Retrieves fixtures for a specific team from a given league and season.
+
+        Args:
+            team (str): The name of the team for which to retrieve fixtures (e.g., "Liverpool").
+            year (str): The season year (e.g., "2023-2024") for which to retrieve match data.
+            league (str): The league for which to retrieve match data (e.g., "Premier League").
+
+        Returns:
+            dict: A dictionary containing fixture details with the following structure:
+                - match link (str): URL to the match report.
+                - match-date (str): Date of the match.
+                - data-venue-time (str): Time and venue details.
+                - referee (str): Referee’s name.
+                - stats (dict): A nested dictionary with team statistics:
+                    - home (dict): Home team statistics:
+                        - xg (str): Expected goals for the home team.
+                        - link team stats (str): URL linking to the home team’s stats page.
+                        - team stats (dict): Team stats from the `TeamInfos` method.
+                    - away (dict): Away team statistics:
+                        - xg (str): Expected goals for the away team.
+                        - link team stats (str): URL linking to the away team’s stats page.
+                        - team stats (dict): Team stats from the `TeamInfos` method.
+                - score (dict): Match score:
+                    - home (str): Home team’s score.
+                    - away (str): Away team’s score.
+                - Attendance (str): Attendance figure.
+                - venue (str): Venue of the match.
+                - teams (dict): Team names:
+                    - home (str): Home team.
+                    - away (str): Away team.
+        """
+
+        # Validate input types and values
         if not isinstance(league, str):
-            raise  TypeError('`league` must be a str eg: Champions League .')
-            
+            raise TypeError('`league` must be a str, e.g., "Champions League".')
+        
         if league not in validLeagues:
             raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
 
         if int(year.split('-')[-1]) > int(cuurentYear):
             raise FbrefInvalidYearException(year, 'FBref', cuurentYear)
-        
-        urls = self.get_valid_seasons(league)
-                
-        season_link = urls.seasonUrls[year]
 
+        # Construct the season link and fixtures URL
+        urls = self.get_valid_seasons(league)
+        season_link = urls.seasonUrls[year]
         fixtures_url = self.baseurl + '/'.join(season_link.split('/')[:-1] + ['schedule', '-'.join(season_link.split('/')[-1].split('-')[:-1]) + '-Scores-and-Fixtures'])
 
+        # Fetch and parse the fixtures page
         r = self._get(fixtures_url)
-
         soup = BeautifulSoup(r.content, 'html.parser')
-
         table = soup.find('table')
 
-        # Extract data from each row of matches using list comprehension
-        fixtures = {league + "-Scores-and-Fixture": [
+        # Extract data from each row of matches
+        fixtures = {
+            league + "-Scores-and-Fixture": [
                 {
                     'match link': self.baseurl + row.find('td', {'data-stat': 'date'}).find('a')['href'] if row.find('td', {'data-stat': 'date'}) and row.find('td', {'data-stat': 'date'}).find('a') else np.nan,
                     'match-date': row.find('td', {'data-stat': 'date'}).text.strip() if row.find('td', {'data-stat': 'date'}) else np.nan,
@@ -665,17 +820,17 @@ class fbref():
                         'home': {
                             'xg': row.find('td', {'data-stat': 'home_xg'}).text.strip() if row.find('td', {'data-stat': 'home_xg'}) else np.nan,
                             'link team stats': self.baseurl + row.find('td', {'data-stat': 'home_team'}).find('a')['href'] if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan,
-                            'team stats' : self.TeamInfos(team, league)
+                            'team stats': self.TeamInfos(row.find('td', {'data-stat': 'home_team'}).find('a').text.strip(), league) if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan
                         },
                         'away': {
                             'xg': row.find('td', {'data-stat': 'away_xg'}).text.strip() if row.find('td', {'data-stat': 'away_xg'}) else np.nan,
                             'link team stats': self.baseurl + row.find('td', {'data-stat': 'away_team'}).find('a')['href'] if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan,
-                            'team stats' : self.TeamInfos(team, league)
+                            'team stats': self.TeamInfos(row.find('td', {'data-stat': 'away_team'}).find('a').text.strip(), league) if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan
                         }
                     },
                     'score': {
-                        'home': (row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[0].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan),
-                        'away': (row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[1].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan)
+                        'home': row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[0].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan,
+                        'away': row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[1].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan
                     },
                     'Attendance': row.find('td', {'data-stat': 'attendance'}).text.strip() if row.find('td', {'data-stat': 'attendance'}) else np.nan,
                     'venue': row.find('td', {'data-stat': 'venue'}).text.strip() if row.find('td', {'data-stat': 'venue'}) else np.nan,
@@ -684,217 +839,229 @@ class fbref():
                         'away': row.find('td', {'data-stat': 'away_team'}).find('a').text.strip() if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan
                     }
                 }
-                for row in table.find_all('tr') 
+                for row in table.find_all('tr')
                 if row.find('td', {'data-stat': 'match_report'}) and any(term in row.find('td', {'data-stat': 'match_report'}).text for term in ['Head-to-Head', 'Match Report'])
-                 # Filter matches where the target team is either the home or away team
-             and (
-            (row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a').text.strip() == team) or
-            (row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a').text.strip() == team)
-        )
+                # Filter matches where the team is either the home or away team
+                if (
+                    (row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a').text.strip() == team) or
+                    (row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a').text.strip() == team)
+                )
             ]
-                }
+        }
 
         return fixtures
+
     
     #====================================== Match report By team ==========================================#
-    def MatchReportByTeam(self, team : str, year : str , league : str) -> dict:
-        """MatchReportByTeam containing match report of one  club
-            Args:
-                year (str)
-                league (str)
-            Returns:
-
-                fixtures
-
-                    match link
-                    data-venue-time-only
-                    referre
-
-                    stats
-                        away
-                            xg
-                            link team stats
-                            team stats : TeamInfos(self,  team: str, league : str)
-                            players : Players(self, team: str, league: str) 
-                        home
-                            xg
-                            link team stats
-                            team stats : TeamInfos(self,  team: str, league : str)
-                            players : Players(self, team: str, league: str)
-                    score
-                        away
-                        home
-                    venue
-                    teams
-                        away
-                        home
-
+    def MatchReportByTeam(self, team: str, year: str, league: str) -> dict:
         """
-        if not isinstance(league, str):
-                raise  TypeError('`league` must be a str eg: Champions League .')
-                
-        if league not in validLeagues:
-            raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
-
-        if int(year.split('-')[-1]) > int(cuurentYear):
-            raise FbrefInvalidYearException(year, 'FBref', cuurentYear)
-            
-        urls = self.get_valid_seasons(league)
-                    
-        season_link = urls.seasonUrls[year]
-
-        fixtures_url = self.baseurl + '/'.join(season_link.split('/')[:-1] + ['schedule', '-'.join(season_link.split('/')[-1].split('-')[:-1]) + '-Scores-and-Fixtures'])
-
-        r = self._get(fixtures_url)
-
-        soup = BeautifulSoup(r.content, 'html.parser')
-
-        table = soup.find('table')
-
-        # Extract data from each row of matches using list comprehension
-        fixtures = {league + "-Scores-and-Fixture": [
-                    {
-                        'match link': self.baseurl + row.find('td', {'data-stat': 'date'}).find('a')['href'] if row.find('td', {'data-stat': 'date'}) and row.find('td', {'data-stat': 'date'}).find('a') else np.nan,
-                        'match-date': row.find('td', {'data-stat': 'date'}).text.strip() if row.find('td', {'data-stat': 'date'}) else np.nan,
-                        'data-venue-time': row.find('td', {'data-stat': 'start_time'}).find('span', {'data-venue-time': True})['data-venue-time'] if row.find('td', {'data-stat': 'start_time'}) and row.find('td', {'data-stat': 'start_time'}).find('span', {'data-venue-time': True}) else np.nan,
-                        'referee': row.find('td', {'data-stat': 'referee'}).text.strip() if row.find('td', {'data-stat': 'referee'}) else np.nan,
-                        'stats': {
-                            'home': {
-                                'xg': row.find('td', {'data-stat': 'home_xg'}).text.strip() if row.find('td', {'data-stat': 'home_xg'}) else np.nan,
-                                'link team stats': self.baseurl + row.find('td', {'data-stat': 'home_team'}).find('a')['href'] if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan,
-                                'team stats' : self.TeamInfos(team, league)
-                            },
-                            'away': {
-                                'xg': row.find('td', {'data-stat': 'away_xg'}).text.strip() if row.find('td', {'data-stat': 'away_xg'}) else np.nan,
-                                'link team stats': self.baseurl + row.find('td', {'data-stat': 'away_team'}).find('a')['href'] if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan,
-                                'team stats' : self.TeamInfos(team, league)
-                            }
-                        },
-                        'score': {
-                            'home': (row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[0].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan),
-                            'away': (row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[1].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan)
-                        },
-                        'Attendance': row.find('td', {'data-stat': 'attendance'}).text.strip() if row.find('td', {'data-stat': 'attendance'}) else np.nan,
-                        'venue': row.find('td', {'data-stat': 'venue'}).text.strip() if row.find('td', {'data-stat': 'venue'}) else np.nan,
-                        'teams': {
-                            'home': row.find('td', {'data-stat': 'home_team'}).find('a').text.strip() if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan,
-                            'away': row.find('td', {'data-stat': 'away_team'}).find('a').text.strip() if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan
-                        }
-                    }
-                    for row in table.find_all('tr') 
-                    if row.find('td', {'data-stat': 'match_report'}) and 'Match Report' in row.find('td', {'data-stat': 'match_report'}).text
-                    # Filter matches where the target team is either the home or away team
-                and (
-                (row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a').text.strip() == team) or
-                (row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a').text.strip() == team)
-            )
-                ]
-                    }
-
-        return fixtures
-    #====================================== Head Head By Team ==========================================#
-    def HeadHeadByTeam(self, team : str, year : str , league : str) -> dict:
-        """HeadHeadByTeam containing  head to head of one  club
-            Args:
-                year (str)
-                league (str)
-            Returns:
-
-                fixtures
-
-                    match link
-                    data-venue-time-only
-                    referre
-
-                    stats
-                        away
-                            xg
-                            link team stats
-                            team stats : TeamInfos(self,  team: str, league : str)
-                            players : Players(self, team: str, league: str) 
-                        home
-                            xg
-                            link team stats
-                            team stats : TeamInfos(self,  team: str, league : str)
-                            players : Players(self, team: str, league: str)
-                    score
-                        away
-                        home
-                    venue
-                    teams
-                        away
-                        home
-
-        """
-        if not isinstance(league, str):
-                raise  TypeError('`league` must be a str eg: Champions League .')
-                
-        if league not in validLeagues:
-            raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
-
-        if int(year.split('-')[-1]) > int(cuurentYear):
-            raise FbrefInvalidYearException(year, 'FBref', cuurentYear)
-            
-        urls = self.get_valid_seasons(league)
-                    
-        season_link = urls.seasonUrls[year]
-
-        fixtures_url = self.baseurl + '/'.join(season_link.split('/')[:-1] + ['schedule', '-'.join(season_link.split('/')[-1].split('-')[:-1]) + '-Scores-and-Fixtures'])
-
-        r = self._get(fixtures_url)
-
-        soup = BeautifulSoup(r.content, 'html.parser')
-
-        table = soup.find('table')
-
-        # Extract data from each row of matches using list comprehension
-        fixtures = {league + "-Scores-and-Fixture": [
-                    {
-                        'match link': self.baseurl + row.find('td', {'data-stat': 'date'}).find('a')['href'] if row.find('td', {'data-stat': 'date'}) and row.find('td', {'data-stat': 'date'}).find('a') else np.nan,
-                        'match-date': row.find('td', {'data-stat': 'date'}).text.strip() if row.find('td', {'data-stat': 'date'}) else np.nan,
-                        'data-venue-time': row.find('td', {'data-stat': 'start_time'}).find('span', {'data-venue-time': True})['data-venue-time'] if row.find('td', {'data-stat': 'start_time'}) and row.find('td', {'data-stat': 'start_time'}).find('span', {'data-venue-time': True}) else np.nan,
-                        'referee': row.find('td', {'data-stat': 'referee'}).text.strip() if row.find('td', {'data-stat': 'referee'}) else np.nan,
-                        'stats': {
-                            'home': {
-                                'xg': row.find('td', {'data-stat': 'home_xg'}).text.strip() if row.find('td', {'data-stat': 'home_xg'}) else np.nan,
-                                'link team stats': self.baseurl + row.find('td', {'data-stat': 'home_team'}).find('a')['href'] if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan,
-                                'team stats' : self.TeamInfos(team, league)
-                            },
-                            'away': {
-                                'xg': row.find('td', {'data-stat': 'away_xg'}).text.strip() if row.find('td', {'data-stat': 'away_xg'}) else np.nan,
-                                'link team stats': self.baseurl + row.find('td', {'data-stat': 'away_team'}).find('a')['href'] if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan,
-                                'team stats' : self.TeamInfos(team, league)
-                            }
-                        },
-                        'score': {
-                            'home': (row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[0].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan),
-                            'away': (row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[1].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan)
-                        },
-                        'Attendance': row.find('td', {'data-stat': 'attendance'}).text.strip() if row.find('td', {'data-stat': 'attendance'}) else np.nan,
-                        'venue': row.find('td', {'data-stat': 'venue'}).text.strip() if row.find('td', {'data-stat': 'venue'}) else np.nan,
-                        'teams': {
-                            'home': row.find('td', {'data-stat': 'home_team'}).find('a').text.strip() if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan,
-                            'away': row.find('td', {'data-stat': 'away_team'}).find('a').text.strip() if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan
-                        }
-                    }
-                    for row in table.find_all('tr') 
-                    if row.find('td', {'data-stat': 'match_report'}) and 'Head-to-Head' in row.find('td', {'data-stat': 'match_report'}).text
-                    # Filter matches where the target team is either the home or away team
-                and (
-                (row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a').text.strip() == team) or
-                (row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a').text.strip() == team)
-            )
-                ]
-                    }
-
-        return fixtures
-    #====================================== TeamsInfo ================================================#
-    def TeamsInfo(self,  league : str) -> dict:
-        """
-        Retrieves team information for a specified club and league, including current and previous season stats, previous and next matches, and seasonal trajectories.
+        Retrieves match reports for a specific team from a given league and season.
 
         Args:
-            club (str): The name of the club.
+            team (str): The name of the team for which to retrieve match reports (e.g., "Liverpool").
+            year (str): The season year (e.g., "2023-2024") for which to retrieve match data.
+            league (str): The league for which to retrieve match data (e.g., "Premier League").
+
+        Returns:
+            dict: A dictionary containing match report details with the following structure:
+                - match link (str): URL to the match report.
+                - match-date (str): Date of the match.
+                - data-venue-time (str): Time and venue details.
+                - referee (str): Referee’s name.
+                - stats (dict): A nested dictionary with team statistics:
+                    - home (dict): Home team statistics:
+                        - xg (str): Expected goals for the home team.
+                        - link team stats (str): URL linking to the home team’s stats page.
+                        - team stats (dict): Team stats from the `TeamInfos` method.
+                        - players (dict): Player statistics from the `Players` method.
+                    - away (dict): Away team statistics:
+                        - xg (str): Expected goals for the away team.
+                        - link team stats (str): URL linking to the away team’s stats page.
+                        - team stats (dict): Team stats from the `TeamInfos` method.
+                        - players (dict): Player statistics from the `Players` method.
+                - score (dict): Match score:
+                    - home (str): Home team’s score.
+                    - away (str): Away team’s score.
+                - Attendance (str): Attendance figure.
+                - venue (str): Venue of the match.
+                - teams (dict): Team names:
+                    - home (str): Home team.
+                    - away (str): Away team.
+        """
+
+        # Validate input types and values
+        if not isinstance(league, str):
+            raise TypeError('`league` must be a str, e.g., "Champions League".')
+        
+        if league not in validLeagues:
+            raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
+
+        if int(year.split('-')[-1]) > int(cuurentYear):
+            raise FbrefInvalidYearException(year, 'FBref', cuurentYear)
+
+        # Construct the season link and fixtures URL
+        urls = self.get_valid_seasons(league)
+        season_link = urls.seasonUrls[year]
+        fixtures_url = self.baseurl + '/'.join(season_link.split('/')[:-1] + ['schedule', '-'.join(season_link.split('/')[-1].split('-')[:-1]) + '-Scores-and-Fixtures'])
+
+        # Fetch and parse the fixtures page
+        r = self._get(fixtures_url)
+        soup = BeautifulSoup(r.content, 'html.parser')
+        table = soup.find('table')
+
+        # Extract data from each row of matches
+        fixtures = {
+            league + "-Scores-and-Fixture": [
+                {
+                    'match link': self.baseurl + row.find('td', {'data-stat': 'date'}).find('a')['href'] if row.find('td', {'data-stat': 'date'}) and row.find('td', {'data-stat': 'date'}).find('a') else np.nan,
+                    'match-date': row.find('td', {'data-stat': 'date'}).text.strip() if row.find('td', {'data-stat': 'date'}) else np.nan,
+                    'data-venue-time': row.find('td', {'data-stat': 'start_time'}).find('span', {'data-venue-time': True})['data-venue-time'] if row.find('td', {'data-stat': 'start_time'}) and row.find('td', {'data-stat': 'start_time'}).find('span', {'data-venue-time': True}) else np.nan,
+                    'referee': row.find('td', {'data-stat': 'referee'}).text.strip() if row.find('td', {'data-stat': 'referee'}) else np.nan,
+                    'stats': {
+                        'home': {
+                            'xg': row.find('td', {'data-stat': 'home_xg'}).text.strip() if row.find('td', {'data-stat': 'home_xg'}) else np.nan,
+                            'link team stats': self.baseurl + row.find('td', {'data-stat': 'home_team'}).find('a')['href'] if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan,
+                            'team stats': self.TeamInfos(row.find('td', {'data-stat': 'home_team'}).find('a').text.strip(), league) if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan,
+                            'players': self.Players(row.find('td', {'data-stat': 'home_team'}).find('a').text.strip(), league) if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan
+                        },
+                        'away': {
+                            'xg': row.find('td', {'data-stat': 'away_xg'}).text.strip() if row.find('td', {'data-stat': 'away_xg'}) else np.nan,
+                            'link team stats': self.baseurl + row.find('td', {'data-stat': 'away_team'}).find('a')['href'] if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan,
+                            'team stats': self.TeamInfos(row.find('td', {'data-stat': 'away_team'}).find('a').text.strip(), league) if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan,
+                            'players': self.Players(row.find('td', {'data-stat': 'away_team'}).find('a').text.strip(), league) if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan
+                        }
+                    },
+                    'score': {
+                        'home': row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[0].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan,
+                        'away': row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[1].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan
+                    },
+                    'Attendance': row.find('td', {'data-stat': 'attendance'}).text.strip() if row.find('td', {'data-stat': 'attendance'}) else np.nan,
+                    'venue': row.find('td', {'data-stat': 'venue'}).text.strip() if row.find('td', {'data-stat': 'venue'}) else np.nan,
+                    'teams': {
+                        'home': row.find('td', {'data-stat': 'home_team'}).find('a').text.strip() if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan,
+                        'away': row.find('td', {'data-stat': 'away_team'}).find('a').text.strip() if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan
+                    }
+                }
+                for row in table.find_all('tr')
+                if row.find('td', {'data-stat': 'match_report'}) and 'Match Report' in row.find('td', {'data-stat': 'match_report'}).text
+                # Filter matches where the target team is either the home or away team
+                if (
+                    (row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a').text.strip() == team) or
+                    (row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a').text.strip() == team)
+                )
+            ]
+        }
+
+        return fixtures
+
+    #====================================== Head Head By Team ==========================================#
+    def HeadHeadByTeam(self, team: str, year: str, league: str) -> dict:
+        """
+        Retrieves head-to-head match reports for a specific team from a given league and season.
+
+        Args:
+            team (str): The name of the team for which to retrieve head-to-head match reports (e.g., "Liverpool").
+            year (str): The season year (e.g., "2023-2024") for which to retrieve match data.
+            league (str): The league for which to retrieve match data (e.g., "Premier League").
+
+        Returns:
+            dict: A dictionary containing head-to-head match details with the following structure:
+                - match link (str): URL to the match report.
+                - match-date (str): Date of the match.
+                - data-venue-time (str): Time and venue details.
+                - referee (str): Referee’s name.
+                - stats (dict): A nested dictionary with team statistics:
+                    - home (dict): Home team statistics:
+                        - xg (str): Expected goals for the home team.
+                        - link team stats (str): URL linking to the home team’s stats page.
+                        - team stats (dict): Team stats from the `TeamInfos` method.
+                        - players (dict): Player statistics from the `Players` method.
+                    - away (dict): Away team statistics:
+                        - xg (str): Expected goals for the away team.
+                        - link team stats (str): URL linking to the away team’s stats page.
+                        - team stats (dict): Team stats from the `TeamInfos` method.
+                        - players (dict): Player statistics from the `Players` method.
+                - score (dict): Match score:
+                    - home (str): Home team’s score.
+                    - away (str): Away team’s score.
+                - Attendance (str): Attendance figure.
+                - venue (str): Venue of the match.
+                - teams (dict): Team names:
+                    - home (str): Home team.
+                    - away (str): Away team.
+        """
+        
+        # Validate input types and values
+        if not isinstance(league, str):
+            raise TypeError('`league` must be a str, e.g., "Champions League".')
+        
+        if league not in validLeagues:
+            raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
+
+        if int(year.split('-')[-1]) > int(cuurentYear):
+            raise FbrefInvalidYearException(year, 'FBref', cuurentYear)
+
+        # Construct the season link and fixtures URL
+        urls = self.get_valid_seasons(league)
+        season_link = urls.seasonUrls[year]
+        fixtures_url = self.baseurl + '/'.join(season_link.split('/')[:-1] + ['schedule', '-'.join(season_link.split('/')[-1].split('-')[:-1]) + '-Scores-and-Fixtures'])
+
+        # Fetch and parse the fixtures page
+        r = self._get(fixtures_url)
+        soup = BeautifulSoup(r.content, 'html.parser')
+        table = soup.find('table')
+
+        # Extract data from each row of matches
+        fixtures = {
+            league + "-Scores-and-Fixture": [
+                {
+                    'match link': self.baseurl + row.find('td', {'data-stat': 'date'}).find('a')['href'] if row.find('td', {'data-stat': 'date'}) and row.find('td', {'data-stat': 'date'}).find('a') else np.nan,
+                    'match-date': row.find('td', {'data-stat': 'date'}).text.strip() if row.find('td', {'data-stat': 'date'}) else np.nan,
+                    'data-venue-time': row.find('td', {'data-stat': 'start_time'}).find('span', {'data-venue-time': True})['data-venue-time'] if row.find('td', {'data-stat': 'start_time'}) and row.find('td', {'data-stat': 'start_time'}).find('span', {'data-venue-time': True}) else np.nan,
+                    'referee': row.find('td', {'data-stat': 'referee'}).text.strip() if row.find('td', {'data-stat': 'referee'}) else np.nan,
+                    'stats': {
+                        'home': {
+                            'xg': row.find('td', {'data-stat': 'home_xg'}).text.strip() if row.find('td', {'data-stat': 'home_xg'}) else np.nan,
+                            'link team stats': self.baseurl + row.find('td', {'data-stat': 'home_team'}).find('a')['href'] if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan,
+                            'team stats': self.TeamInfos(row.find('td', {'data-stat': 'home_team'}).find('a').text.strip(), league) if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan,
+                            'players': self.Players(row.find('td', {'data-stat': 'home_team'}).find('a').text.strip(), league) if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan
+                        },
+                        'away': {
+                            'xg': row.find('td', {'data-stat': 'away_xg'}).text.strip() if row.find('td', {'data-stat': 'away_xg'}) else np.nan,
+                            'link team stats': self.baseurl + row.find('td', {'data-stat': 'away_team'}).find('a')['href'] if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan,
+                            'team stats': self.TeamInfos(row.find('td', {'data-stat': 'away_team'}).find('a').text.strip(), league) if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan,
+                            'players': self.Players(row.find('td', {'data-stat': 'away_team'}).find('a').text.strip(), league) if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan
+                        }
+                    },
+                    'score': {
+                        'home': row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[0].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan,
+                        'away': row.find('td', {'data-stat': 'score'}).find('a').text.strip().split('–')[1].strip() if row.find('td', {'data-stat': 'score'}) and row.find('td', {'data-stat': 'score'}).find('a') else np.nan
+                    },
+                    'Attendance': row.find('td', {'data-stat': 'attendance'}).text.strip() if row.find('td', {'data-stat': 'attendance'}) else np.nan,
+                    'venue': row.find('td', {'data-stat': 'venue'}).text.strip() if row.find('td', {'data-stat': 'venue'}) else np.nan,
+                    'teams': {
+                        'home': row.find('td', {'data-stat': 'home_team'}).find('a').text.strip() if row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a') else np.nan,
+                        'away': row.find('td', {'data-stat': 'away_team'}).find('a').text.strip() if row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a') else np.nan
+                    }
+                }
+                for row in table.find_all('tr')
+                if row.find('td', {'data-stat': 'match_report'}) and 'Head-to-Head' in row.find('td', {'data-stat': 'match_report'}).text
+                # Filter matches where the target team is either the home or away team
+                if (
+                    (row.find('td', {'data-stat': 'home_team'}) and row.find('td', {'data-stat': 'home_team'}).find('a').text.strip() == team) or
+                    (row.find('td', {'data-stat': 'away_team'}) and row.find('td', {'data-stat': 'away_team'}).find('a').text.strip() == team)
+                )
+            ]
+        }
+
+        return fixtures
+
+    #====================================== TeamsInfo ================================================#
+    def TeamsInfo(self, league: str) -> dict:
+        """
+        Retrieves team information for a specified league, including current and previous season stats, and team details.
+
+        Args:
             league (str): The name of the league (e.g., "Champions League").
 
         Returns:
@@ -902,8 +1069,8 @@ class fbref():
                 - 'rank': The team's rank in the current season (starting from 1).
                 - 'logo': The URL of the team's logo.
                 - 'games': The number of games played.
-                - 'url' :  the url to the team stats
-                - 'current stats': A nested dictionary with the following current season statistics:
+                - 'url': The URL to the team's stats page.
+                - 'current stats': A dictionary with current season statistics:
                     - 'wins': Number of wins.
                     - 'draws': Number of draws.
                     - 'losses': Number of losses.
@@ -925,33 +1092,30 @@ class fbref():
             TypeError: If `league` is not a string.
             FbrefInvalidLeagueException: If `league` is not a valid league name.
         """
-
+        
+        # Validate input type and league
         if not isinstance(league, str):
-           raise  TypeError('`league` must be a str eg: Champions League .')
+            raise TypeError('`league` must be a str, e.g., "Champions League".')
         
         if league not in validLeagues:
             raise FbrefInvalidLeagueException(league, 'FBref', validLeagues)
 
-        
         urls = self.get_valid_seasons(league)
 
-        #---------------------getting Cuurent Team Stats--------------------------------------
-      
-        url = urls.seasonUrls[f"{int(cuurentYear)-1}-{cuurentYear}"]
-        response = self._get(os.path.join(self.baseurl,url[1:]))
+        # Retrieve current season team stats
+        current_season_url = urls.seasonUrls[f"{int(cuurentYear)-1}-{cuurentYear}"]
+        response = self._get(os.path.join(self.baseurl, current_season_url[1:]))
         soup = BeautifulSoup(response.content, 'html.parser')
-
-        #  Looking for the table with the classes 'wikitable' and 'sortable'
         table = soup.find('table', class_='stats_table')
 
-        # Collecting data into a dictionary with team names as keys and including rank
-        cuurentTeamStats = {
+        current_team_stats = {
             row.find_all('td')[0].find("a").get_text(strip=True): {
                 "rank": index + 1,
                 "logo": row.find_all('td')[0].find('img')['src'],
                 "url": row.find_all('td')[0].find("a")['href'],
                 "games": int(row.find_all('td')[1].get_text(strip=True)),
-                "current stats" : {"wins": int(row.find_all('td')[2].get_text(strip=True)),
+                "current stats": {
+                    "wins": int(row.find_all('td')[2].get_text(strip=True)),
                     "draws": int(row.find_all('td')[3].get_text(strip=True)),
                     "losses": int(row.find_all('td')[4].get_text(strip=True)),
                     "goals_for": int(row.find_all('td')[5].get_text(strip=True)),
@@ -965,27 +1129,20 @@ class fbref():
                     "xg_diff_per90": row.find_all('td')[13].get_text(strip=True),
                     "last_result": row.find_all('td')[14].get_text(strip=True),
                     "top_scorer": row.find_all('td')[16].get_text(strip=True),
-                    "top_keeper": row.find_all('td')[17].get_text(strip=True)}
+                    "top_keeper": row.find_all('td')[17].get_text(strip=True)
+                }
             }
             for index, row in enumerate(table.tbody.find_all('tr'))
             if row.find_all('td')  # Ensures only rows with data are processed
         }
 
-        #  Looking for the table with the classes 'wikitable' and 'sortable'
-        table2 = soup.find('table', {'class':re.compile('stats'), 'id':re.compile('for')})
-
-
-
-        #--------------------- getting previous Year Team Stats--------------------------------------
-      
-        
-        url = urls.seasonUrls[f"{cuurentYear}-{int(cuurentYear)+1}"]
-        
-        response = self._get(os.path.join(self.baseurl,url[1:]))
+        # Retrieve previous season team stats
+        previous_season_url = urls.seasonUrls[f"{cuurentYear}-{int(cuurentYear)+1}"]
+        response = self._get(os.path.join(self.baseurl, previous_season_url[1:]))
         soup = BeautifulSoup(response.content, 'html.parser')
+        table = soup.find('table', {'class': re.compile('stats'), 'id': re.compile('for')})
 
-        # Collecting data into a dictionary with team names as keys and including rank
-        previousTeamStats = {
+        previous_team_stats = {
             row.find_all('td')[0].find("a").get_text(strip=True): {
                 "rank": index + 1,
                 "logo": row.find_all('td')[0].find('img')['src'],
@@ -1004,20 +1161,22 @@ class fbref():
                 "xg_diff": row.find_all('td')[12].get_text(strip=True),
                 "xg_diff_per90": row.find_all('td')[13].get_text(strip=True),
                 "last_result": row.find_all('td')[14].get_text(strip=True),
-                "top_scorer": row.find_all('td')[16].get_text(strip=True), 
+                "top_scorer": row.find_all('td')[16].get_text(strip=True),
                 "top_keeper": row.find_all('td')[17].get_text(strip=True),
             }
             for index, row in enumerate(table.tbody.find_all('tr'))
             if row.find_all('td')  # Ensures only rows with data are processed
         }
 
-        #------------Create a new dictionary with updated stats including previous stats----------
-        teamStats = cuurentTeamStats
-        for team in cuurentTeamStats.keys():
-            if team in previousTeamStats.keys():
-                cuurentTeamStats[team]["previous stats"] = previousTeamStats[team]
-        
-        return teamStats
+        # Combine current and previous stats
+        for team in current_team_stats.keys():
+            if team in previous_team_stats:
+                current_team_stats[team]["previous stats"] = previous_team_stats[team]
+            else:
+                current_team_stats[team]["previous stats"] = {}
+
+        return current_team_stats
+
     
     #====================================== TeamsInfo ================================================#
     def TeamInfos(self,  team: str, league : str) -> dict:

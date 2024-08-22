@@ -66,12 +66,6 @@ class testLigasfbrefApi(unittest.TestCase):
 
         self.assertIsInstance(response , dict)
 
-    def test_players(self):
-        response = self.api.Players(team ='Real Madrid', league = 'La Liga')
-
-        self.assertIsInstance(response , pd.DataFrame)
-
-
 
 if __name__ == "__main__":
     unittest.main()

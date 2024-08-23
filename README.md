@@ -57,6 +57,31 @@ To install ligas, run
 $ pip install ligas
 ```
 
-## Soccer website scraped
+## FBref
 Data have been scraped from the following sources:
 * [FBref](https://fbref.com/fr/)
+
+eg:
+```bash
+$ pip install ligas
+$ from ligas import Fbref
+$ Fbref.TeamInfos(team: str, league: str)
+```
+Fbref contain the following modules
+
+| **Name**                                 | **Description**                        |
+|------------------------------------------|----------------------------------------|
+| `TeamInfos(team: str, league: str) -> dict` | Class or function to get information about a specific team.|
+| `TeamsInfo(league: str) -> dict`            | Retrieves information about multiple teams.|
+| `HeadHeadByTeam(team: str, year: str, league: str) -> dict`| Retrieves head-to-head statistics by team.|
+| `MatchReportByTeam(team: str, year: str, league: str)`     | Generates a match report for a specific team.|
+| `FixturesByTeam(team: str, year: str, league: str)`        | Lists the fixtures for a given team.|
+| `Matches(date: str, year: str, league: str)`               | Provides general information about matches.|
+| `HeadHead(year: str, league: str) -> dict`                 | Retrieves head-to-head statistics between two teams.|
+| `MatchReport(year: str, league: str) -> dict`              | Generates a detailed match report.|
+| `Fixtures(year: str, league: str) -> dict`                 | Lists fixtures for a league or team.|
+| `TopScorer(league: str, currentSeason: str) -> dict` | Retrieves the top scorer of a league for the current season.|
+| `TopScorers( league: str) -> dict`   | Retrieves the top scorers of a league.|
+| `LeagueInfos(year: str, league: str) -> dict` | Gets information about a specific league for a given year.|
+| `get_valid_seasons(league: str) -> SeasonUrls` | Retrieves the valid seasons for a given league.
+

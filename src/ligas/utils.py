@@ -203,16 +203,18 @@ def check_proxy(proxy: dict) -> bool:
         logger.error(f"BAD PROXY: Reason: {error!s}\n")
         return False
 
-#=============================================== free proxy list net =================================================================
+
+# =============================================== free proxy list net =================================================================
+
 
 def get_proxy_():
     try:
         response = requests.get("https://free-proxy-list.net/")
         response.raise_for_status()
-        soup = BeautifulSoup(response.content, 'html.parser')
-        table = soup.find('table')
-        proxiesDf = pd.read_html(StringIO(str(table)))[0].fillna('-')
-        proxies = list(proxiesDf['IP Address'] + ':' + proxiesDf['Port'].astype(str))
+        soup = BeautifulSoup(response.content, "html.parser")
+        table = soup.find("table")
+        proxiesDf = pd.read_html(StringIO(str(table)))[0].fillna("-")
+        proxies = list(proxiesDf["IP Address"] + ":" + proxiesDf["Port"].astype(str))
         proxies = sorted(proxies, key=lambda x: random.random())
 
         for proxy in proxies:
@@ -225,16 +227,22 @@ def get_proxy_():
         logger.error(f"Error accessing free-proxy-list.net: {e}. Using your own proxy.")
         return None
 
+
 def check_proxy_(proxy) -> bool:
     """Check if the proxy is working."""
     try:
-        r0 = requests.get('https://fbref.com/en/matches', proxies={'http': proxy, 'https': proxy}, timeout=20)
+        r0 = requests.get(
+            "https://fbref.com/en/matches",
+            proxies={"http": proxy, "https": proxy},
+            timeout=20,
+        )
         return r0.status_code == 200
     except requests.RequestException as error:
         logger.error(f"BAD PROXY: {proxy} - Reason: {error}")
         return False
 
-#=============================================== Compositions =======================================================
+
+# =============================================== Compositions =======================================================
 
 compositions = {
     # Men's club international cups

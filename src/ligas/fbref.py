@@ -29,13 +29,12 @@ validLeagues = [league for league in compositions.keys()]
 
 
 class Fbref:
-    wait_time : int = 10
-    baseurl : str = "https://fbref.com/"
-    
+    wait_time: int = 10
+    baseurl: str = "https://fbref.com/"
 
     # ====================================== request http ==========================================#
     @classmethod
-    def _get(cls , url: str) -> requests.Response:
+    def _get(cls, url: str) -> requests.Response:
         """
         Sends a GET request to the specified URL and handles potential HTTP errors.
 
@@ -65,9 +64,11 @@ class Fbref:
         webBrowser = random.choice(browser)
         header = browserHeaders.get(webBrowser)
         proxy = get_proxy_()
-       
+
         response = requests.get(
-            url=url, headers = header, proxies= {'http':proxy, 'https:':proxy} if proxy else None
+            url=url,
+            headers=header,
+            proxies={"http": proxy, "https:": proxy} if proxy else None,
         )
 
         wait_thread = threading.Thread(target=cls._wait())
@@ -168,7 +169,7 @@ class Fbref:
     # ====================================== League Infos ==========================================#
 
     @classmethod
-    def LeagueInfos(cls , year: str, league: str) -> dict:
+    def LeagueInfos(cls, year: str, league: str) -> dict:
         """
         Retrieves detailed league information for a given year and league.
 
@@ -258,7 +259,7 @@ class Fbref:
     # ====================================== get top scorers ==========================================#
 
     @classmethod
-    def TopScorers(cls , league: str) -> dict:
+    def TopScorers(cls, league: str) -> dict:
         """
         Retrieves the top scorer's statistics for a given league and season.
 
@@ -336,10 +337,10 @@ class Fbref:
 
         return top_scorers
 
-    #====================================== Top Scorer ==========================================#
+    # ====================================== Top Scorer ==========================================#
 
     @classmethod
-    def TopScorer(cls , league: str, currentSeason: str) -> dict:
+    def TopScorer(cls, league: str, currentSeason: str) -> dict:
         """
         Scrapes the top scorer's detailed statistics for a specified league and season.
 
@@ -419,10 +420,10 @@ class Fbref:
             "detailed_stats": stats,
         }
 
-    #====================================== Fixtures ==========================================#
+    # ====================================== Fixtures ==========================================#
 
     @classmethod
-    def Fixtures(cls , year: str, league: str) -> dict:
+    def Fixtures(cls, year: str, league: str) -> dict:
         """
         Retrieves match fixtures, including match reports, head-to-head details, and various statistics for a specific league and season.
 
@@ -621,7 +622,7 @@ class Fbref:
     # ====================================== MatchReport ==========================================#
 
     @classmethod
-    def MatchReport(cls , year: str, league: str) -> dict:
+    def MatchReport(cls, year: str, league: str) -> dict:
         """
         Retrieves detailed match report data for a specific league and season.
 
@@ -977,7 +978,7 @@ class Fbref:
     # ====================================== Matches ==========================================#
 
     @classmethod
-    def Matches(cls , date: str, year: str, league: str) -> dict:
+    def Matches(cls, date: str, year: str, league: str) -> dict:
         """
         Retrieves fixtures for a specific date from a given league and season.
 
@@ -1161,7 +1162,7 @@ class Fbref:
     # ====================================== Fixture team ==========================================#
 
     @classmethod
-    def FixturesByTeam(cls , team: str, year: str, league: str) -> dict:
+    def FixturesByTeam(cls, team: str, year: str, league: str) -> dict:
         """
         Retrieves fixtures for a specific team from a given league and season.
 
@@ -1389,7 +1390,7 @@ class Fbref:
     # ====================================== Match report By team ==========================================#
 
     @classmethod
-    def MatchReportByTeam(cls , team: str, year: str, league: str) -> dict:
+    def MatchReportByTeam(cls, team: str, year: str, league: str) -> dict:
         """
         Retrieves match reports for a specific team from a given league and season.
 
@@ -1641,7 +1642,7 @@ class Fbref:
     # ====================================== Head Head By Team ==========================================#
 
     @classmethod
-    def HeadHeadByTeam(cls , team: str, year: str, league: str) -> dict:
+    def HeadHeadByTeam(cls, team: str, year: str, league: str) -> dict:
         """
         Retrieves head-to-head match reports for a specific team from a given league and season.
 
@@ -1763,17 +1764,6 @@ class Fbref:
                                 and row.find("td", {"data-stat": "home_team"}).find("a")
                                 else np.nan
                             ),
-                            # "players": (
-                            #     cls.Players(
-                            #         row.find("td", {"data-stat": "home_team"})
-                            #         .find("a")
-                            #         .text.strip(),
-                            #         league,
-                            #     )
-                            #     if row.find("td", {"data-stat": "home_team"})
-                            #     and row.find("td", {"data-stat": "home_team"}).find("a")
-                            #     else np.nan
-                            # ),
                         },
                         "away": {
                             "xg": (
@@ -1801,17 +1791,6 @@ class Fbref:
                                 and row.find("td", {"data-stat": "away_team"}).find("a")
                                 else np.nan
                             ),
-                            # "players": (
-                            #     cls.Players(
-                            #         row.find("td", {"data-stat": "away_team"})
-                            #         .find("a")
-                            #         .text.strip(),
-                            #         league,
-                            #     )
-                            #     if row.find("td", {"data-stat": "away_team"})
-                            #     and row.find("td", {"data-stat": "away_team"}).find("a")
-                            #     else np.nan
-                            # ),
                         },
                     },
                     "score": {
@@ -1893,7 +1872,7 @@ class Fbref:
     # ====================================== TeamsInfo ================================================#
 
     @classmethod
-    def TeamsInfo(cls , league: str) -> dict:
+    def TeamsInfo(cls, league: str) -> dict:
         """
         Retrieves team information for a specified league, including current and previous season stats, and team details.
 
@@ -2030,7 +2009,7 @@ class Fbref:
     # ====================================== Teams Info ================================================#
 
     @classmethod
-    def TeamInfos(cls , team: str, league: str) -> dict:
+    def TeamInfos(cls, team: str, league: str) -> dict:
         """
         Retrieves detailed information for a specific team within a specified league.
 

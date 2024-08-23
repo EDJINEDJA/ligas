@@ -243,7 +243,7 @@ def check_proxy_(proxy) -> bool:
 # =============================================== free proxy list net max wait time=================================================================
 
     
-def _get_proxy(max_wait_time=120):
+def _get_proxy(max_wait_time=60):
     """
     Try to obtain a proxy from free-proxy-list.net for a given time.
     If no proxy is found after max_wait_time seconds, returns None.

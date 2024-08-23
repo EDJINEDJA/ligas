@@ -22,7 +22,7 @@ from .exceptions import (
     FbrefInvalidTeamException,
 )
 from .entity_config import SeasonUrls
-from .utils import compositions, browserHeaders, browser, _get_proxy
+from .utils import compositions, browserHeaders, browser, get_proxy
 
 cuurentYear = datetime.now().year
 validLeagues = [league for league in compositions.keys()]
@@ -64,7 +64,7 @@ class Fbref:
         # Choose a random browser header if needed
         webBrowser = random.choice(browser)
         header = browserHeaders.get(webBrowser)
-        proxy = _get_proxy()
+        proxy = get_proxy()
        
         response = requests.get(
             url=url, headers = header, proxies= {'http':proxy, 'https:':proxy} if proxy else None

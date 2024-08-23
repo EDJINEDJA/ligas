@@ -152,7 +152,7 @@ def copy(source: str, destination: str, verbose=True):
 # =============================================== Proxies =================================================================
 
 
-def get_proxy() -> dict[str, str]:
+def get_proxy__() -> dict[str, str]:
     """Return a public proxy."""
     # list of free proxy apis
     # protocols: http, https, socks4 and socks5
@@ -187,14 +187,14 @@ def get_proxy() -> dict[str, str]:
 
     # trying proxy
     for proxy in final_proxy_list:
-        if check_proxy(proxy):
+        if check_proxy__(proxy):
             return proxy
 
     logger.info("There are currently no proxies available. Exiting...")
     return None
 
 
-def check_proxy(proxy: dict) -> bool:
+def check_proxy__(proxy: dict) -> bool:
     """Check if proxy is working."""
     try:
         r0 = requests.get("https://ipinfo.io/json", proxies=proxy, timeout=120)
@@ -243,7 +243,7 @@ def check_proxy_(proxy) -> bool:
 # =============================================== free proxy list net max wait time=================================================================
 
     
-def _get_proxy(max_wait_time=60):
+def get_proxy(max_wait_time=120):
     """
     Try to obtain a proxy from free-proxy-list.net for a given time.
     If no proxy is found after max_wait_time seconds, returns None.
@@ -261,7 +261,7 @@ def _get_proxy(max_wait_time=60):
 
             logger.info("Searching for a working proxy...")
             for proxy in proxies:
-                if _check_proxy(proxy):
+                if check_proxy(proxy):
                     logger.info(f"Proxy found: {proxy}")
                     return proxy
 
@@ -273,7 +273,7 @@ def _get_proxy(max_wait_time=60):
     logger.info("No proxies found within the time limit. Using the default proxy.")
     return None
 
-def _check_proxy(proxy) -> bool:
+def check_proxy(proxy) -> bool:
     """Check if the proxy is working."""
     try:
         r0 = requests.get(

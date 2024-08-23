@@ -22,22 +22,20 @@ from .exceptions import (
     FbrefInvalidTeamException,
 )
 from .entity_config import SeasonUrls
-from .utils import compositions, browserHeaders, browser, get_proxy
+from .utils import compositions, browserHeaders, browser, get_proxy_
 
 cuurentYear = datetime.now().year
 validLeagues = [league for league in compositions.keys()]
-proxy = get_proxy()
 
 
-class fbref:
-    def __init__(
-        self, wait_time: int = 10, baseurl: str = "https://fbref.com/"
-    ) -> None:
-        self.baseurl = baseurl
-        self.wait_time = wait_time
+class Fbref:
+    wait_time : int = 10
+    baseurl : str = "https://fbref.com/"
+    
 
     # ====================================== request http ==========================================#
-    def _get(self, url: str) -> requests.Response:
+    @classmethod
+    def _get(cls , url: str) -> requests.Response:
         """
         Sends a GET request to the specified URL and handles potential HTTP errors.
 
@@ -66,13 +64,15 @@ class fbref:
         # Choose a random browser header if needed
         webBrowser = random.choice(browser)
         header = browserHeaders.get(webBrowser)
-
+        proxy = get_proxy_()
+       
         response = requests.get(
-            url=url, headers=header, proxies=proxy if proxy else None
+            url=url, headers = header, proxies= {'http':proxy, 'https:':proxy} if proxy else None
         )
 
-        wait_thread = threading.Thread(target=self._wait)
+        wait_thread = threading.Thread(target=cls._wait())
         wait_thread.start()
+        wait_thread.join()
 
         # Check the status code of the response and handle errors
         status = response.status_code
@@ -86,7 +86,9 @@ class fbref:
         return response
 
     # ====================================== Waiting time to avoid rate limit error ====================#
-    def _wait(self):
+
+    @classmethod
+    def _wait(cls):
         """
         Implements a waiting period to avoid triggering rate limit errors.
 
@@ -103,10 +105,12 @@ class fbref:
         Returns:
             None
         """
-        time.sleep(self.wait_time)
+        time.sleep(cls.wait_time)
 
-    # ====================================== get_current_seasons ==========================================#
-    def get_valid_seasons(self, league: str) -> SeasonUrls:
+    # ====================================== get current seasons ==========================================#
+
+    @classmethod
+    def get_valid_seasons(cls, league: str) -> SeasonUrls:
         """
         Retrieves all valid seasons and their corresponding URLs for a specified league.
 
@@ -146,7 +150,7 @@ class fbref:
         url = compositions[league]["history url"]
 
         # Send a GET request to the URL and parse the content using BeautifulSoup
-        r = self._get(url)
+        r = cls._get(url)
         soup = BeautifulSoup(r.content, "html.parser")
 
         # Extract the season years and their corresponding URLs
@@ -161,9 +165,10 @@ class fbref:
         # Return the result wrapped in a SeasonUrls object
         return SeasonUrls(seasonUrls)
 
-    # ====================================== LeagueInfos ==========================================#
+    # ====================================== League Infos ==========================================#
 
-    def LeagueInfos(self, year: str, league: str) -> dict:
+    @classmethod
+    def LeagueInfos(cls , year: str, league: str) -> dict:
         """
         Retrieves detailed league information for a given year and league.
 
@@ -219,11 +224,11 @@ class fbref:
             raise FbrefInvalidYearException(year, "FBref", cuurentYear)
 
         # Retrieve the valid seasons for the league and get the URL for the specified year
-        urls = self.get_valid_seasons(league)
+        urls = cls.get_valid_seasons(league)
         url = urls.seasonUrls[year]
 
         # Send a GET request to the constructed URL and parse the content
-        response = requests.get(os.path.join(self.baseurl, url[1:]))
+        response = requests.get(os.path.join(cls.baseurl, url[1:]))
         soup = BeautifulSoup(response.content, "html.parser")
 
         # Extract league information from the HTML content
@@ -250,8 +255,10 @@ class fbref:
 
         return leagueInfos
 
-    # ====================================== get_top_scorers ==========================================#
-    def TopScorers(self, league: str) -> dict:
+    # ====================================== get top scorers ==========================================#
+
+    @classmethod
+    def TopScorers(cls , league: str) -> dict:
         """
         Retrieves the top scorer's statistics for a given league and season.
 
@@ -298,7 +305,7 @@ class fbref:
 
         # Retrieve the URL for the league's historical data
         url = compositions[league]["history url"]
-        r = self._get(url)
+        r = cls._get(url)
         soup = BeautifulSoup(r.content, "html.parser")
 
         # Extract top scorer information from the parsed HTML
@@ -311,7 +318,7 @@ class fbref:
                 "goals": row.find("td", {"data-stat": "top_scorers"})
                 .find("span")
                 .text.strip(),
-                "stats_link": self.baseurl
+                "stats_link": cls.baseurl
                 + row.find("td", {"data-stat": "top_scorers"}).find("a")["href"],
                 "club": (
                     row.find("td", {"data-stat": "champ"}).text.split("-")[0].strip()
@@ -329,9 +336,10 @@ class fbref:
 
         return top_scorers
 
-    # ====================================== TopScorer ==========================================#
+    #====================================== Top Scorer ==========================================#
 
-    def TopScorer(self, league: str, currentSeason: str) -> dict:
+    @classmethod
+    def TopScorer(cls , league: str, currentSeason: str) -> dict:
         """
         Scrapes the top scorer's detailed statistics for a specified league and season.
 
@@ -371,7 +379,7 @@ class fbref:
         """
 
         # Fetch the top scorers data for the given league using the TopScorers method
-        response = self.TopScorers(league=league)
+        response = cls.TopScorers(league=league)
         key = f"{league} season {currentSeason}"
 
         # Check if the season data exists in the fetched response
@@ -384,7 +392,7 @@ class fbref:
         stats_link = response[key]["stats_link"]
 
         # Fetch and parse the top scorer's detailed statistics page
-        r = self._get(stats_link)
+        r = cls._get(stats_link)
         soup = BeautifulSoup(r.content, "html.parser")
 
         # Locate the table containing detailed statistics for forwards (FW)
@@ -411,8 +419,10 @@ class fbref:
             "detailed_stats": stats,
         }
 
-    # ====================================== Fixtures ==========================================#
-    def Fixtures(self, year: str, league: str) -> dict:
+    #====================================== Fixtures ==========================================#
+
+    @classmethod
+    def Fixtures(cls , year: str, league: str) -> dict:
         """
         Retrieves match fixtures, including match reports, head-to-head details, and various statistics for a specific league and season.
 
@@ -461,10 +471,10 @@ class fbref:
             raise FbrefInvalidYearException(year, "FBref", cuurentYear)
 
         # Retrieve the valid seasons and construct the fixtures URL
-        urls = self.get_valid_seasons(league)
+        urls = cls.get_valid_seasons(league)
         season_link = urls.seasonUrls[year]
 
-        fixtures_url = self.baseurl + "/".join(
+        fixtures_url = cls.baseurl + "/".join(
             season_link.split("/")[:-1]
             + [
                 "schedule",
@@ -474,7 +484,7 @@ class fbref:
         )
 
         # Fetch the fixtures page
-        r = self._get(fixtures_url)
+        r = cls._get(fixtures_url)
         soup = BeautifulSoup(r.content, "html.parser")
 
         # Locate the table containing the fixtures
@@ -486,7 +496,7 @@ class fbref:
             + "-Scores-and-Fixture": [
                 {
                     "match link": (
-                        self.baseurl
+                        cls.baseurl
                         + row.find("td", {"data-stat": "date"}).find("a")["href"]
                         if row.find("td", {"data-stat": "date"})
                         and row.find("td", {"data-stat": "date"}).find("a")
@@ -520,7 +530,7 @@ class fbref:
                                 else np.nan
                             ),
                             "link team stats": (
-                                self.baseurl
+                                cls.baseurl
                                 + row.find("td", {"data-stat": "home_team"}).find("a")[
                                     "href"
                                 ]
@@ -536,7 +546,7 @@ class fbref:
                                 else np.nan
                             ),
                             "link team stats": (
-                                self.baseurl
+                                cls.baseurl
                                 + row.find("td", {"data-stat": "away_team"}).find("a")[
                                     "href"
                                 ]
@@ -609,7 +619,9 @@ class fbref:
         return fixtures
 
     # ====================================== MatchReport ==========================================#
-    def MatchReport(self, year: str, league: str) -> dict:
+
+    @classmethod
+    def MatchReport(cls , year: str, league: str) -> dict:
         """
         Retrieves detailed match report data for a specific league and season.
 
@@ -649,9 +661,9 @@ class fbref:
             raise FbrefInvalidLeagueException(league, "FBref", validLeagues)
 
         # Construct the season link and fixtures URL
-        urls = self.get_valid_seasons(league)
+        urls = cls.get_valid_seasons(league)
         season_link = urls.seasonUrls[year]
-        fixtures_url = self.baseurl + "/".join(
+        fixtures_url = cls.baseurl + "/".join(
             season_link.split("/")[:-1]
             + [
                 "schedule",
@@ -661,7 +673,7 @@ class fbref:
         )
 
         # Retrieve and parse the page
-        r = self._get(fixtures_url)
+        r = cls._get(fixtures_url)
         soup = BeautifulSoup(r.content, "html.parser")
         table = soup.find("table")
 
@@ -671,7 +683,7 @@ class fbref:
             + "-Scores-and-Fixture": [
                 {
                     "match link": (
-                        self.baseurl
+                        cls.baseurl
                         + row.find("td", {"data-stat": "date"}).find("a")["href"]
                         if row.find("td", {"data-stat": "date"})
                         and row.find("td", {"data-stat": "date"}).find("a")
@@ -705,7 +717,7 @@ class fbref:
                                 else np.nan
                             ),
                             "link team stats": (
-                                self.baseurl
+                                cls.baseurl
                                 + row.find("td", {"data-stat": "home_team"}).find("a")[
                                     "href"
                                 ]
@@ -721,7 +733,7 @@ class fbref:
                                 else np.nan
                             ),
                             "link team stats": (
-                                self.baseurl
+                                cls.baseurl
                                 + row.find("td", {"data-stat": "away_team"}).find("a")[
                                     "href"
                                 ]
@@ -791,7 +803,9 @@ class fbref:
         return fixtures
 
     # ====================================== Head Head ==========================================#
-    def HeadHead(self, year: str, league: str) -> dict:
+
+    @classmethod
+    def HeadHead(cls, year: str, league: str) -> dict:
         """
         Retrieves head-to-head match data for a specific league and season.
 
@@ -829,9 +843,9 @@ class fbref:
             raise FbrefInvalidLeagueException(league, "FBref", validLeagues)
 
         # Construct the season link and fixtures URL
-        urls = self.get_valid_seasons(league)
+        urls = cls.get_valid_seasons(league)
         season_link = urls.seasonUrls[year]
-        fixtures_url = self.baseurl + "/".join(
+        fixtures_url = cls.baseurl + "/".join(
             season_link.split("/")[:-1]
             + [
                 "schedule",
@@ -841,7 +855,7 @@ class fbref:
         )
 
         # Retrieve and parse the page
-        r = self._get(fixtures_url)
+        r = cls._get(fixtures_url)
         soup = BeautifulSoup(r.content, "html.parser")
         table = soup.find("table")
 
@@ -851,7 +865,7 @@ class fbref:
             + "-Scores-and-Fixture": [
                 {
                     "match link": (
-                        self.baseurl
+                        cls.baseurl
                         + row.find("td", {"data-stat": "date"}).find("a")["href"]
                         if row.find("td", {"data-stat": "date"})
                         and row.find("td", {"data-stat": "date"}).find("a")
@@ -880,7 +894,7 @@ class fbref:
                     "stats": {
                         "home": {
                             "link team stats": (
-                                self.baseurl
+                                cls.baseurl
                                 + row.find("td", {"data-stat": "home_team"}).find("a")[
                                     "href"
                                 ]
@@ -891,7 +905,7 @@ class fbref:
                         },
                         "away": {
                             "link team stats": (
-                                self.baseurl
+                                cls.baseurl
                                 + row.find("td", {"data-stat": "away_team"}).find("a")[
                                     "href"
                                 ]
@@ -962,7 +976,8 @@ class fbref:
 
     # ====================================== Matches ==========================================#
 
-    def Matches(self, date: str, year: str, league: str) -> dict:
+    @classmethod
+    def Matches(cls , date: str, year: str, league: str) -> dict:
         """
         Retrieves fixtures for a specific date from a given league and season.
 
@@ -1002,9 +1017,9 @@ class fbref:
             raise FbrefInvalidLeagueException(league, "FBref", validLeagues)
 
         # Construct the season link and fixtures URL
-        urls = self.get_valid_seasons(league)
+        urls = cls.get_valid_seasons(league)
         season_link = urls.seasonUrls[year]
-        fixtures_url = self.baseurl + "/".join(
+        fixtures_url = cls.baseurl + "/".join(
             season_link.split("/")[:-1]
             + [
                 "schedule",
@@ -1014,7 +1029,7 @@ class fbref:
         )
 
         # Retrieve and parse the page
-        r = self._get(fixtures_url)
+        r = cls._get(fixtures_url)
         soup = BeautifulSoup(r.content, "html.parser")
         table = soup.find("table")
 
@@ -1024,7 +1039,7 @@ class fbref:
             + "-Scores-and-Fixture": [
                 {
                     "match link": (
-                        self.baseurl
+                        cls.baseurl
                         + row.find("td", {"data-stat": "date"}).find("a")["href"]
                         if row.find("td", {"data-stat": "date"})
                         and row.find("td", {"data-stat": "date"}).find("a")
@@ -1058,7 +1073,7 @@ class fbref:
                                 else np.nan
                             ),
                             "link team stats": (
-                                self.baseurl
+                                cls.baseurl
                                 + row.find("td", {"data-stat": "home_team"}).find("a")[
                                     "href"
                                 ]
@@ -1074,7 +1089,7 @@ class fbref:
                                 else np.nan
                             ),
                             "link team stats": (
-                                self.baseurl
+                                cls.baseurl
                                 + row.find("td", {"data-stat": "away_team"}).find("a")[
                                     "href"
                                 ]
@@ -1144,7 +1159,9 @@ class fbref:
         return fixtures
 
     # ====================================== Fixture team ==========================================#
-    def FixturesByTeam(self, team: str, year: str, league: str) -> dict:
+
+    @classmethod
+    def FixturesByTeam(cls , team: str, year: str, league: str) -> dict:
         """
         Retrieves fixtures for a specific team from a given league and season.
 
@@ -1186,9 +1203,9 @@ class fbref:
             raise FbrefInvalidLeagueException(league, "FBref", validLeagues)
 
         # Construct the season link and fixtures URL
-        urls = self.get_valid_seasons(league)
+        urls = cls.get_valid_seasons(league)
         season_link = urls.seasonUrls[year]
-        fixtures_url = self.baseurl + "/".join(
+        fixtures_url = cls.baseurl + "/".join(
             season_link.split("/")[:-1]
             + [
                 "schedule",
@@ -1198,7 +1215,7 @@ class fbref:
         )
 
         # Fetch and parse the fixtures page
-        r = self._get(fixtures_url)
+        r = cls._get(fixtures_url)
         soup = BeautifulSoup(r.content, "html.parser")
         table = soup.find("table")
 
@@ -1208,7 +1225,7 @@ class fbref:
             + "-Scores-and-Fixture": [
                 {
                     "match link": (
-                        self.baseurl
+                        cls.baseurl
                         + row.find("td", {"data-stat": "date"}).find("a")["href"]
                         if row.find("td", {"data-stat": "date"})
                         and row.find("td", {"data-stat": "date"}).find("a")
@@ -1242,7 +1259,7 @@ class fbref:
                                 else np.nan
                             ),
                             "link team stats": (
-                                self.baseurl
+                                cls.baseurl
                                 + row.find("td", {"data-stat": "home_team"}).find("a")[
                                     "href"
                                 ]
@@ -1251,7 +1268,7 @@ class fbref:
                                 else np.nan
                             ),
                             "team stats": (
-                                self.TeamInfos(
+                                cls.TeamInfos(
                                     row.find("td", {"data-stat": "home_team"})
                                     .find("a")
                                     .text.strip(),
@@ -1269,7 +1286,7 @@ class fbref:
                                 else np.nan
                             ),
                             "link team stats": (
-                                self.baseurl
+                                cls.baseurl
                                 + row.find("td", {"data-stat": "away_team"}).find("a")[
                                     "href"
                                 ]
@@ -1278,7 +1295,7 @@ class fbref:
                                 else np.nan
                             ),
                             "team stats": (
-                                self.TeamInfos(
+                                cls.TeamInfos(
                                     row.find("td", {"data-stat": "away_team"})
                                     .find("a")
                                     .text.strip(),
@@ -1370,7 +1387,9 @@ class fbref:
         return fixtures
 
     # ====================================== Match report By team ==========================================#
-    def MatchReportByTeam(self, team: str, year: str, league: str) -> dict:
+
+    @classmethod
+    def MatchReportByTeam(cls , team: str, year: str, league: str) -> dict:
         """
         Retrieves match reports for a specific team from a given league and season.
 
@@ -1417,9 +1436,9 @@ class fbref:
             raise FbrefInvalidYearException(year, "FBref", cuurentYear)
 
         # Construct the season link and fixtures URL
-        urls = self.get_valid_seasons(league)
+        urls = cls.get_valid_seasons(league)
         season_link = urls.seasonUrls[year]
-        fixtures_url = self.baseurl + "/".join(
+        fixtures_url = cls.baseurl + "/".join(
             season_link.split("/")[:-1]
             + [
                 "schedule",
@@ -1429,7 +1448,7 @@ class fbref:
         )
 
         # Fetch and parse the fixtures page
-        r = self._get(fixtures_url)
+        r = cls._get(fixtures_url)
         soup = BeautifulSoup(r.content, "html.parser")
         table = soup.find("table")
 
@@ -1439,7 +1458,7 @@ class fbref:
             + "-Scores-and-Fixture": [
                 {
                     "match link": (
-                        self.baseurl
+                        cls.baseurl
                         + row.find("td", {"data-stat": "date"}).find("a")["href"]
                         if row.find("td", {"data-stat": "date"})
                         and row.find("td", {"data-stat": "date"}).find("a")
@@ -1473,7 +1492,7 @@ class fbref:
                                 else np.nan
                             ),
                             "link team stats": (
-                                self.baseurl
+                                cls.baseurl
                                 + row.find("td", {"data-stat": "home_team"}).find("a")[
                                     "href"
                                 ]
@@ -1482,7 +1501,7 @@ class fbref:
                                 else np.nan
                             ),
                             "team stats": (
-                                self.TeamInfos(
+                                cls.TeamInfos(
                                     row.find("td", {"data-stat": "home_team"})
                                     .find("a")
                                     .text.strip(),
@@ -1492,17 +1511,17 @@ class fbref:
                                 and row.find("td", {"data-stat": "home_team"}).find("a")
                                 else np.nan
                             ),
-                            "players": (
-                                self.Players(
-                                    row.find("td", {"data-stat": "home_team"})
-                                    .find("a")
-                                    .text.strip(),
-                                    league,
-                                )
-                                if row.find("td", {"data-stat": "home_team"})
-                                and row.find("td", {"data-stat": "home_team"}).find("a")
-                                else np.nan
-                            ),
+                            # "players": (
+                            #     cls.Players(
+                            #         row.find("td", {"data-stat": "home_team"})
+                            #         .find("a")
+                            #         .text.strip(),
+                            #         league,
+                            #     )
+                            #     if row.find("td", {"data-stat": "home_team"})
+                            #     and row.find("td", {"data-stat": "home_team"}).find("a")
+                            #     else np.nan
+                            # ),
                         },
                         "away": {
                             "xg": (
@@ -1511,7 +1530,7 @@ class fbref:
                                 else np.nan
                             ),
                             "link team stats": (
-                                self.baseurl
+                                cls.baseurl
                                 + row.find("td", {"data-stat": "away_team"}).find("a")[
                                     "href"
                                 ]
@@ -1520,7 +1539,7 @@ class fbref:
                                 else np.nan
                             ),
                             "team stats": (
-                                self.TeamInfos(
+                                cls.TeamInfos(
                                     row.find("td", {"data-stat": "away_team"})
                                     .find("a")
                                     .text.strip(),
@@ -1530,17 +1549,17 @@ class fbref:
                                 and row.find("td", {"data-stat": "away_team"}).find("a")
                                 else np.nan
                             ),
-                            "players": (
-                                self.Players(
-                                    row.find("td", {"data-stat": "away_team"})
-                                    .find("a")
-                                    .text.strip(),
-                                    league,
-                                )
-                                if row.find("td", {"data-stat": "away_team"})
-                                and row.find("td", {"data-stat": "away_team"}).find("a")
-                                else np.nan
-                            ),
+                            # "players": (
+                            #     cls.Players(
+                            #         row.find("td", {"data-stat": "away_team"})
+                            #         .find("a")
+                            #         .text.strip(),
+                            #         league,
+                            #     )
+                            #     if row.find("td", {"data-stat": "away_team"})
+                            #     and row.find("td", {"data-stat": "away_team"}).find("a")
+                            #     else np.nan
+                            # ),
                         },
                     },
                     "score": {
@@ -1620,7 +1639,9 @@ class fbref:
         return fixtures
 
     # ====================================== Head Head By Team ==========================================#
-    def HeadHeadByTeam(self, team: str, year: str, league: str) -> dict:
+
+    @classmethod
+    def HeadHeadByTeam(cls , team: str, year: str, league: str) -> dict:
         """
         Retrieves head-to-head match reports for a specific team from a given league and season.
 
@@ -1667,9 +1688,9 @@ class fbref:
             raise FbrefInvalidYearException(year, "FBref", cuurentYear)
 
         # Construct the season link and fixtures URL
-        urls = self.get_valid_seasons(league)
+        urls = cls.get_valid_seasons(league)
         season_link = urls.seasonUrls[year]
-        fixtures_url = self.baseurl + "/".join(
+        fixtures_url = cls.baseurl + "/".join(
             season_link.split("/")[:-1]
             + [
                 "schedule",
@@ -1679,7 +1700,7 @@ class fbref:
         )
 
         # Fetch and parse the fixtures page
-        r = self._get(fixtures_url)
+        r = cls._get(fixtures_url)
         soup = BeautifulSoup(r.content, "html.parser")
         table = soup.find("table")
 
@@ -1689,7 +1710,7 @@ class fbref:
             + "-Scores-and-Fixture": [
                 {
                     "match link": (
-                        self.baseurl
+                        cls.baseurl
                         + row.find("td", {"data-stat": "date"}).find("a")["href"]
                         if row.find("td", {"data-stat": "date"})
                         and row.find("td", {"data-stat": "date"}).find("a")
@@ -1723,7 +1744,7 @@ class fbref:
                                 else np.nan
                             ),
                             "link team stats": (
-                                self.baseurl
+                                cls.baseurl
                                 + row.find("td", {"data-stat": "home_team"}).find("a")[
                                     "href"
                                 ]
@@ -1732,7 +1753,7 @@ class fbref:
                                 else np.nan
                             ),
                             "team stats": (
-                                self.TeamInfos(
+                                cls.TeamInfos(
                                     row.find("td", {"data-stat": "home_team"})
                                     .find("a")
                                     .text.strip(),
@@ -1742,17 +1763,17 @@ class fbref:
                                 and row.find("td", {"data-stat": "home_team"}).find("a")
                                 else np.nan
                             ),
-                            "players": (
-                                self.Players(
-                                    row.find("td", {"data-stat": "home_team"})
-                                    .find("a")
-                                    .text.strip(),
-                                    league,
-                                )
-                                if row.find("td", {"data-stat": "home_team"})
-                                and row.find("td", {"data-stat": "home_team"}).find("a")
-                                else np.nan
-                            ),
+                            # "players": (
+                            #     cls.Players(
+                            #         row.find("td", {"data-stat": "home_team"})
+                            #         .find("a")
+                            #         .text.strip(),
+                            #         league,
+                            #     )
+                            #     if row.find("td", {"data-stat": "home_team"})
+                            #     and row.find("td", {"data-stat": "home_team"}).find("a")
+                            #     else np.nan
+                            # ),
                         },
                         "away": {
                             "xg": (
@@ -1761,7 +1782,7 @@ class fbref:
                                 else np.nan
                             ),
                             "link team stats": (
-                                self.baseurl
+                                cls.baseurl
                                 + row.find("td", {"data-stat": "away_team"}).find("a")[
                                     "href"
                                 ]
@@ -1770,7 +1791,7 @@ class fbref:
                                 else np.nan
                             ),
                             "team stats": (
-                                self.TeamInfos(
+                                cls.TeamInfos(
                                     row.find("td", {"data-stat": "away_team"})
                                     .find("a")
                                     .text.strip(),
@@ -1780,17 +1801,17 @@ class fbref:
                                 and row.find("td", {"data-stat": "away_team"}).find("a")
                                 else np.nan
                             ),
-                            "players": (
-                                self.Players(
-                                    row.find("td", {"data-stat": "away_team"})
-                                    .find("a")
-                                    .text.strip(),
-                                    league,
-                                )
-                                if row.find("td", {"data-stat": "away_team"})
-                                and row.find("td", {"data-stat": "away_team"}).find("a")
-                                else np.nan
-                            ),
+                            # "players": (
+                            #     cls.Players(
+                            #         row.find("td", {"data-stat": "away_team"})
+                            #         .find("a")
+                            #         .text.strip(),
+                            #         league,
+                            #     )
+                            #     if row.find("td", {"data-stat": "away_team"})
+                            #     and row.find("td", {"data-stat": "away_team"}).find("a")
+                            #     else np.nan
+                            # ),
                         },
                     },
                     "score": {
@@ -1870,7 +1891,9 @@ class fbref:
         return fixtures
 
     # ====================================== TeamsInfo ================================================#
-    def TeamsInfo(self, league: str) -> dict:
+
+    @classmethod
+    def TeamsInfo(cls , league: str) -> dict:
         """
         Retrieves team information for a specified league, including current and previous season stats, and team details.
 
@@ -1913,11 +1936,11 @@ class fbref:
         if league not in validLeagues:
             raise FbrefInvalidLeagueException(league, "FBref", validLeagues)
 
-        urls = self.get_valid_seasons(league)
+        urls = cls.get_valid_seasons(league)
 
         # Retrieve current season team stats
         current_season_url = urls.seasonUrls[f"{cuurentYear}-{int(cuurentYear)+1}"]
-        response = self._get(os.path.join(self.baseurl, current_season_url[1:]))
+        response = cls._get(os.path.join(cls.baseurl, current_season_url[1:]))
         soup = BeautifulSoup(response.content, "html.parser")
         table = soup.find("table", class_="stats_table")
 
@@ -1960,7 +1983,7 @@ class fbref:
         # Retrieve previous season team stats
         previous_season_url = urls.seasonUrls[f"{int(cuurentYear)-1}-{cuurentYear}"]
 
-        response = self._get(os.path.join(self.baseurl, previous_season_url[1:]))
+        response = cls._get(os.path.join(cls.baseurl, previous_season_url[1:]))
         soup = BeautifulSoup(response.content, "html.parser")
         table = soup.find("table", class_="stats_table")
 
@@ -2004,8 +2027,10 @@ class fbref:
 
         return current_team_stats
 
-    # ====================================== TeamsInfo ================================================#
-    def TeamInfos(self, team: str, league: str) -> dict:
+    # ====================================== Teams Info ================================================#
+
+    @classmethod
+    def TeamInfos(cls , team: str, league: str) -> dict:
         """
         Retrieves detailed information for a specific team within a specified league.
 
@@ -2049,7 +2074,7 @@ class fbref:
         if league not in validLeagues:
             raise FbrefInvalidLeagueException(league, "FBref", validLeagues)
 
-        teamsInfo = self.TeamsInfo(league)
+        teamsInfo = cls.TeamsInfo(league)
 
         validTeams = teamsInfo.keys()
 
@@ -2061,9 +2086,9 @@ class fbref:
         teamInfos = teamsInfo[team]
 
         # Adding additional stats current season
-        team_url = os.path.join(self.baseurl, teamInfos["url"][1:])
+        team_url = os.path.join(cls.baseurl, teamInfos["url"][1:])
 
-        response = self._get(team_url)
+        response = cls._get(team_url)
 
         soup = BeautifulSoup(response.content, "html.parser")
 
@@ -2082,26 +2107,27 @@ class fbref:
 
         for cat in stats_categories.keys():
             if cat != "players":
-                teamInfos["current stats"][cat] = self._categorystats(
+                teamInfos["current stats"][cat] = cls._categorystats(
                     soup, stats_categories[cat]["re"], stats_categories[cat]["header"]
                 )
             else:
-                teamInfos["current stats"]["players"] = self._players(soup)
+                teamInfos["current stats"]["players"] = cls._players(soup)
 
         # Adding additional stats previous season
-        team_url = os.path.join(self.baseurl, teamInfos["previous stats"]["url"][1:])
+        team_url = os.path.join(cls.baseurl, teamInfos["previous stats"]["url"][1:])
 
-        response = self._get(team_url)
+        response = cls._get(team_url)
 
         soup = BeautifulSoup(response.content, "html.parser")
 
         for cat in stats_categories.keys():
             if cat != "players":
-                teamInfos["current stats"][cat] = self._categorystats(
+                teamInfos["current stats"][cat] = cls._categorystats(
                     soup, stats_categories[cat]["re"], stats_categories[cat]["header"]
                 )
             else:
-                teamInfos["current stats"]["players"] = self._players(soup)
+                teamInfos["current stats"]["players"] = cls._players(soup)
+        print(teamInfos)
 
         return teamInfos
 

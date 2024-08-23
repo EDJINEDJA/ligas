@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 import joblib
 import yaml
-
+import time
 from box import ConfigBox
 from box.exceptions import BoxValueError
 from ensure import ensure_annotations
@@ -217,6 +217,7 @@ def get_proxy_():
         proxies = list(proxiesDf["IP Address"] + ":" + proxiesDf["Port"].astype(str))
         proxies = sorted(proxies, key=lambda x: random.random())
 
+        logger.error(f"Wait seeking proxy ...")
         for proxy in proxies:
             if check_proxy_(proxy):
                 return proxy
@@ -226,7 +227,6 @@ def get_proxy_():
     except requests.RequestException as e:
         logger.error(f"Error accessing free-proxy-list.net: {e}. Using your own proxy.")
         return None
-
 
 def check_proxy_(proxy) -> bool:
     """Check if the proxy is working."""
@@ -239,6 +239,50 @@ def check_proxy_(proxy) -> bool:
         return r0.status_code == 200
     except requests.RequestException as error:
         logger.error(f"BAD PROXY: {proxy} - Reason: {error}")
+        return False
+# =============================================== free proxy list net max wait time=================================================================
+
+    
+def _get_proxy(max_wait_time=120):
+    """
+    Try to obtain a proxy from free-proxy-list.net for a given time.
+    If no proxy is found after max_wait_time seconds, returns None.
+    """
+    start_time = time.time()
+    while time.time() - start_time < max_wait_time:
+        try:
+            response = requests.get("https://free-proxy-list.net/")
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, "html.parser")
+            table = soup.find("table")
+            proxiesDf = pd.read_html(StringIO(str(table)))[0].fillna("-")
+            proxies = list(proxiesDf["IP Address"] + ":" + proxiesDf["Port"].astype(str))
+            proxies = sorted(proxies, key=lambda x: random.random())
+
+            logger.info("Searching for a working proxy...")
+            for proxy in proxies:
+                if _check_proxy(proxy):
+                    logger.info(f"Proxy found: {proxy}")
+                    return proxy
+
+            logger.info("No working proxies found, retrying in a few seconds...")
+            
+        except requests.RequestException as e:
+            logger.error(f"Error accessing free-proxy-list.net: {e}")
+
+    logger.info("No proxies found within the time limit. Using the default proxy.")
+    return None
+
+def _check_proxy(proxy) -> bool:
+    """Check if the proxy is working."""
+    try:
+        r0 = requests.get(
+            "https://fbref.com/en/matches",
+            proxies={"http": proxy, "https": proxy},
+            timeout=20,
+        )
+        return r0.status_code == 200
+    except requests.RequestException as error:
         return False
 
 

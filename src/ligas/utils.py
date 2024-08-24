@@ -240,10 +240,10 @@ def check_proxy_(proxy) -> bool:
     except requests.RequestException as error:
         logger.error(f"BAD PROXY: {proxy} - Reason: {error}")
         return False
-# =============================================== free proxy list net max wait time=================================================================
+# =============================================== free proxy list net max wait time =================================================================
 
     
-def get_proxy(max_wait_time=120):
+def get_proxy(max_wait_time=10):
     """
     Try to obtain a proxy from free-proxy-list.net for a given time.
     If no proxy is found after max_wait_time seconds, returns None.

@@ -2,7 +2,7 @@ import json
 import os
 import shutil
 from pathlib import Path
-
+from  datetime import datetime, timezone, timedelta
 from typing import Any
 import joblib
 import yaml
@@ -89,9 +89,7 @@ def load_json(path: Path) -> ConfigBox:
     logger.info(f"json file loaded succesfully from: {path}")
     return ConfigBox(content)
 
-
-@ensure_annotations
-def save_bin(data: Any, path: Path):
+def save_bin(data , path):
     """save binary file
 
     Args:
@@ -101,9 +99,7 @@ def save_bin(data: Any, path: Path):
     joblib.dump(value=data, filename=path)
     logger.info(f"binary file saved at: {path}")
 
-
-@ensure_annotations
-def load_bin(path: Path) -> Any:
+def load_bin(path):
     """load binary data
 
     Args:
@@ -116,6 +112,46 @@ def load_bin(path: Path) -> Any:
     logger.info(f"binary file loaded from: {path}")
     return data
 
+@ensure_annotations
+def get_cache_directory(cache_delta_days : int) -> Path:
+    """Returns the path of the directory for today's date.
+        Removes directories older than `cache_delta_days`.
+    
+    Args:
+        cache_delta_days (int): cache duration days
+
+    Returns:
+         path (Path): path of the directory
+    """
+    today_date = datetime.now().strftime("%Y-%m-%d")
+    # The root directory where subdirectories are created
+    base_directory = Path(".") 
+    directory = base_directory / os.path.join("ligas/metadata/",today_date)
+
+    # Remove directories older than `cache_duration_days`
+    expiration_date = datetime.now() - timedelta(days= cache_delta_days)
+    for folder in base_directory.iterdir():
+        if folder.is_dir():
+            try:
+                folder_date = datetime.strptime(folder.name, "%Y-%m-%d")
+                if folder_date < expiration_date:
+                    logger.info(f"Deleting expired directory: {folder}")
+                    for file in folder.iterdir():
+                        # Delete each file in the directory
+                        file.unlink()  
+                    # Delete the directory
+                    folder.rmdir()
+            except ValueError:
+                continue  
+             
+    # Create today's directory if it doesn't exist
+    if not directory.exists():
+        directory.mkdir(parents=True)
+        logger.info(f"Directory '{today_date}' has been created.")
+    else:
+        logger.info(f"Directory '{today_date}' already exists.")
+
+    return directory
 
 @ensure_annotations
 def get_size(path: Path) -> str:

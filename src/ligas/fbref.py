@@ -3,7 +3,7 @@ import re
 import time
 import random
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 import requests
 import threading
@@ -12,6 +12,7 @@ import pandas as pd
 from io import StringIO
 from bs4 import BeautifulSoup
 from typing import Sequence, List, Dict
+from functools import wraps
 
 from .exceptions import (
     FbrefRequestException,
@@ -22,15 +23,47 @@ from .exceptions import (
     FbrefInvalidTeamException,
 )
 from .entity_config import SeasonUrls
-from .utils import compositions, browserHeaders, browser, get_proxy
+from .utils import (compositions, browserHeaders, browser,
+                    save_bin, load_bin, get_proxy, get_cache_directory)
+from .logger import logger
 
-cuurentYear = datetime.now().year
+cuurentYear = datetime.now(tz=timezone.utc).year
 validLeagues = [league for league in compositions.keys()]
-
+cache_duration_days  = 3
 
 class Fbref:
     wait_time : int = 10
     baseurl : str = "https://fbref.com/"
+
+    #====================================== wraper for save data ==========================================#
+    @staticmethod
+    def cache_data(func):
+        """
+        Decorator to check if the data is already stored in a file.
+        If yes, it loads the data. Otherwise, it executes the function, saves the data, and then returns it.
+        """
+        @wraps(func)
+        def wrapper(cls, *args, **kwargs):
+            # Create a unique filename based on the function and its arguments
+            args_str = "_".join(map(str, args))
+            kwargs_str = "_".join(f"{k}={v}" for k, v in kwargs.items())
+            file_name = f"{func.__name__}_{args_str}_{kwargs_str}.json"
+
+            # Path to today's directory
+            directory = get_cache_directory(cache_duration_days)
+            file_path = directory / file_name
+
+            if file_path.exists():
+                logger.info(f"Loading data from {file_path}")
+                data = load_bin(file_path)
+            else:
+                logger.info(f"Downloading data and saving to {file_path}")
+                data = func(cls, *args, **kwargs)
+                save_bin(data,file_path )
+
+            return data
+
+        return wrapper
     
 
     # ====================================== request http ==========================================#
@@ -110,6 +143,7 @@ class Fbref:
     # ====================================== get current seasons ==========================================#
 
     @classmethod
+    @cache_data
     def get_valid_seasons(cls, league: str) -> SeasonUrls:
         """
         Retrieves all valid seasons and their corresponding URLs for a specified league.
@@ -168,6 +202,7 @@ class Fbref:
     # ====================================== League Infos ==========================================#
 
     @classmethod
+    @cache_data
     def LeagueInfos(cls , year: str, league: str) -> dict:
         """
         Retrieves detailed league information for a given year and league.
@@ -258,6 +293,7 @@ class Fbref:
     # ====================================== get top scorers ==========================================#
 
     @classmethod
+    @cache_data
     def TopScorers(cls , league: str) -> dict:
         """
         Retrieves the top scorer's statistics for a given league and season.
@@ -339,6 +375,7 @@ class Fbref:
     #====================================== Top Scorer ==========================================#
 
     @classmethod
+    @cache_data
     def TopScorer(cls , league: str, currentSeason: str) -> dict:
         """
         Scrapes the top scorer's detailed statistics for a specified league and season.
@@ -422,6 +459,7 @@ class Fbref:
     #====================================== Fixtures ==========================================#
 
     @classmethod
+    @cache_data
     def Fixtures(cls , year: str, league: str) -> dict:
         """
         Retrieves match fixtures, including match reports, head-to-head details, and various statistics for a specific league and season.
@@ -621,6 +659,7 @@ class Fbref:
     # ====================================== MatchReport ==========================================#
 
     @classmethod
+    @cache_data
     def MatchReport(cls , year: str, league: str) -> dict:
         """
         Retrieves detailed match report data for a specific league and season.
@@ -805,6 +844,7 @@ class Fbref:
     # ====================================== Head Head ==========================================#
 
     @classmethod
+    @cache_data
     def HeadHead(cls, year: str, league: str) -> dict:
         """
         Retrieves head-to-head match data for a specific league and season.
@@ -977,6 +1017,7 @@ class Fbref:
     # ====================================== Matches ==========================================#
 
     @classmethod
+    @cache_data
     def Matches(cls , date: str, year: str, league: str) -> dict:
         """
         Retrieves fixtures for a specific date from a given league and season.
@@ -1161,6 +1202,7 @@ class Fbref:
     #====================================== Fixture team ==========================================#
 
     @classmethod
+    @cache_data
     def FixturesByTeam(cls , team: str, year: str, league: str) -> dict:
         """
         Retrieves fixtures for a specific team from a given league and season.
@@ -1389,6 +1431,7 @@ class Fbref:
     # ====================================== Match report By team ==========================================#
 
     @classmethod
+    @cache_data
     def MatchReportByTeam(cls , team: str, year: str, league: str) -> dict:
         """
         Retrieves match reports for a specific team from a given league and season.
@@ -1619,6 +1662,7 @@ class Fbref:
     # ====================================== Head Head By Team ==========================================#
 
     @classmethod
+    @cache_data
     def HeadHeadByTeam(cls , team: str, year: str, league: str) -> dict:
         """
         Retrieves head-to-head match reports for a specific team from a given league and season.
@@ -1849,6 +1893,7 @@ class Fbref:
     # ====================================== TeamsInfo ================================================#
 
     @classmethod
+    @cache_data
     def TeamsInfo(cls , league: str) -> dict:
         """
         Retrieves team information for a specified league, including current and previous season stats, and team details.
@@ -1986,6 +2031,7 @@ class Fbref:
     # ====================================== Teams Info ================================================#
 
     @classmethod
+    @cache_data
     def TeamInfos(cls , team: str, league: str) -> dict:
         """
         Retrieves detailed information for a specific team within a specified league.
@@ -2078,11 +2124,11 @@ class Fbref:
 
         for cat in stats_categories.keys():
             if cat != "players":
-                teamInfos["current stats"][cat] = cls._categorystats(
+                teamInfos["previous stats"][cat] = cls._categorystats(
                     soup, stats_categories[cat]["re"], stats_categories[cat]["header"]
                 )
             else:
-                teamInfos["current stats"]["players"] = cls._players(soup)
+                teamInfos["previous stats"]["players"] = cls._players(soup)
 
         return teamInfos
 

@@ -1192,7 +1192,12 @@ class Fbref:
                     },
                 }
                 for row in table.find_all("tr")
-                if row.find("td", {"data-stat": "date"})
+                if row.find("td", {"data-stat": "match_report"})
+                and any(
+                    term in row.find("td", {"data-stat": "match_report"}).text
+                    for term in ["Head-to-Head", "Match Report"]
+                ) 
+                and row.find("td", {"data-stat": "date"})
                 and row.find("td", {"data-stat": "date"}).text.strip() == date
             ]
         }

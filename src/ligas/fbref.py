@@ -23,25 +23,34 @@ from .exceptions import (
     FbrefInvalidTeamException,
 )
 from .entity_config import SeasonUrls
-from .utils import (compositions, browserHeaders, browser,
-                    save_bin, load_bin, get_proxy, get_cache_directory)
+from .utils import (
+    compositions,
+    browserHeaders,
+    browser,
+    save_bin,
+    load_bin,
+    get_proxy,
+    get_cache_directory,
+)
 from .logger import logger
 
 cuurentYear = datetime.now(tz=timezone.utc).year
 validLeagues = [league for league in compositions.keys()]
-cache_duration_days  = 3
+cache_duration_days = 3
+
 
 class Fbref:
-    wait_time : int = 10
-    baseurl : str = "https://fbref.com/"
+    wait_time: int = 10
+    baseurl: str = "https://fbref.com/"
 
-    #====================================== wraper for save data ==========================================#
+    # ====================================== wraper for save data ==========================================#
     @staticmethod
     def cache_data(func):
         """
         Decorator to check if the data is already stored in a file.
         If yes, it loads the data. Otherwise, it executes the function, saves the data, and then returns it.
         """
+
         @wraps(func)
         def wrapper(cls, *args, **kwargs):
             # Create a unique filename based on the function and its arguments
@@ -59,16 +68,15 @@ class Fbref:
             else:
                 logger.info(f"Downloading data and saving to {file_path}")
                 data = func(cls, *args, **kwargs)
-                save_bin(data,file_path )
+                save_bin(data, file_path)
 
             return data
 
         return wrapper
-    
 
     # ====================================== request http ==========================================#
     @classmethod
-    def _get(cls , url: str) -> requests.Response:
+    def _get(cls, url: str) -> requests.Response:
         """
         Sends a GET request to the specified URL and handles potential HTTP errors.
 
@@ -98,9 +106,11 @@ class Fbref:
         webBrowser = random.choice(browser)
         header = browserHeaders.get(webBrowser)
         proxy = get_proxy()
-       
+
         response = requests.get(
-            url=url, headers = header, proxies= {'http':proxy, 'https:':proxy} if proxy else None
+            url=url,
+            headers=header,
+            proxies={"http": proxy, "https:": proxy} if proxy else None,
         )
 
         wait_thread = threading.Thread(target=cls._wait())
@@ -203,7 +213,7 @@ class Fbref:
 
     @classmethod
     @cache_data
-    def LeagueInfos(cls , year: str, league: str) -> dict:
+    def LeagueInfos(cls, year: str, league: str) -> dict:
         """
         Retrieves detailed league information for a given year and league.
 
@@ -294,7 +304,7 @@ class Fbref:
 
     @classmethod
     @cache_data
-    def TopScorers(cls , league: str) -> dict:
+    def TopScorers(cls, league: str) -> dict:
         """
         Retrieves the top scorer's statistics for a given league and season.
 
@@ -372,11 +382,11 @@ class Fbref:
 
         return top_scorers
 
-    #====================================== Top Scorer ==========================================#
+    # ====================================== Top Scorer ==========================================#
 
     @classmethod
     @cache_data
-    def TopScorer(cls , league: str, currentSeason: str) -> dict:
+    def TopScorer(cls, league: str, currentSeason: str) -> dict:
         """
         Scrapes the top scorer's detailed statistics for a specified league and season.
 
@@ -456,11 +466,11 @@ class Fbref:
             "detailed_stats": stats,
         }
 
-    #====================================== Fixtures ==========================================#
+    # ====================================== Fixtures ==========================================#
 
     @classmethod
     @cache_data
-    def Fixtures(cls , year: str, league: str) -> dict:
+    def Fixtures(cls, year: str, league: str) -> dict:
         """
         Retrieves match fixtures, including match reports, head-to-head details, and various statistics for a specific league and season.
 
@@ -660,7 +670,7 @@ class Fbref:
 
     @classmethod
     @cache_data
-    def MatchReport(cls , year: str, league: str) -> dict:
+    def MatchReport(cls, year: str, league: str) -> dict:
         """
         Retrieves detailed match report data for a specific league and season.
 
@@ -1018,7 +1028,7 @@ class Fbref:
 
     @classmethod
     @cache_data
-    def Matches(cls , date: str, year: str, league: str) -> dict:
+    def Matches(cls, date: str, year: str, league: str) -> dict:
         """
         Retrieves fixtures for a specific date from a given league and season.
 
@@ -1196,7 +1206,7 @@ class Fbref:
                 and any(
                     term in row.find("td", {"data-stat": "match_report"}).text
                     for term in ["Head-to-Head", "Match Report"]
-                ) 
+                )
                 and row.find("td", {"data-stat": "date"})
                 and row.find("td", {"data-stat": "date"}).text.strip() == date
             ]
@@ -1204,11 +1214,11 @@ class Fbref:
 
         return fixtures
 
-    #====================================== Fixture team ==========================================#
+    # ====================================== Fixture team ==========================================#
 
     @classmethod
     @cache_data
-    def FixturesByTeam(cls , team: str, year: str, league: str) -> dict:
+    def FixturesByTeam(cls, team: str, year: str, league: str) -> dict:
         """
         Retrieves fixtures for a specific team from a given league and season.
 
@@ -1437,7 +1447,7 @@ class Fbref:
 
     @classmethod
     @cache_data
-    def MatchReportByTeam(cls , team: str, year: str, league: str) -> dict:
+    def MatchReportByTeam(cls, team: str, year: str, league: str) -> dict:
         """
         Retrieves match reports for a specific team from a given league and season.
 
@@ -1668,7 +1678,7 @@ class Fbref:
 
     @classmethod
     @cache_data
-    def HeadHeadByTeam(cls , team: str, year: str, league: str) -> dict:
+    def HeadHeadByTeam(cls, team: str, year: str, league: str) -> dict:
         """
         Retrieves head-to-head match reports for a specific team from a given league and season.
 
@@ -1899,7 +1909,7 @@ class Fbref:
 
     @classmethod
     @cache_data
-    def TeamsInfo(cls , league: str) -> dict:
+    def TeamsInfos(cls, league: str) -> dict:
         """
         Retrieves team information for a specified league, including current and previous season stats, and team details.
 
@@ -2037,7 +2047,7 @@ class Fbref:
 
     @classmethod
     @cache_data
-    def TeamInfos(cls , team: str, league: str) -> dict:
+    def TeamInfos(cls, team: str, league: str) -> dict:
         """
         Retrieves detailed information for a specific team within a specified league.
 
@@ -2081,7 +2091,7 @@ class Fbref:
         if league not in validLeagues:
             raise FbrefInvalidLeagueException(league, "FBref", validLeagues)
 
-        teamsInfo = cls.TeamsInfo(league)
+        teamsInfo = cls.TeamsInfos(league)
 
         validTeams = teamsInfo.keys()
 
@@ -2121,7 +2131,15 @@ class Fbref:
                 teamInfos["current stats"]["players"] = cls._players(soup)
 
         # Adding additional stats previous season
-        team_url = os.path.join(cls.baseurl, teamInfos["previous stats"]["url"][1:])
+        team_url = (
+            os.path.join(cls.baseurl, teamInfos["previous stats"]["url"][1:])
+            if teamInfos["previous stats"]
+            else os.path.join(
+                *os.path.join(cls.baseurl, teamInfos["url"][1:]).split("/")[:-1],
+                f"{int(cuurentYear)-1}-{cuurentYear}",
+                os.path.join(cls.baseurl, teamInfos["url"][1:]).split("/")[-1],
+            ).replace("https:/", "https://", 1)
+        )
 
         response = cls._get(team_url)
 

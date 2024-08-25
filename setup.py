@@ -19,7 +19,7 @@ class CustomInstallCommand(install):
 with codecs.open(os.path.join(BASEDIR, "README.md"), encoding="utf-8") as fh:
     long_description = fh.read()
 
-VERSION = "1.0.6"
+VERSION = "1.0.7"
 SRC_REPO = "ligas"
 DESCRIPTION = "fetch soccer data with different ip and web browser"
 LONG_DESCRIPTION = "Ligas is a powerful tool designed for soccer enthusiasts, analysts, and developers. It allows you to fetch detailed soccer data from various leagues, teams, and players, providing the essential information needed for in-depth soccer data analysis. With Ligas, you can access up-to-date statistics, historical data, and performance metrics, enabling you to conduct comprehensive analyses, create visualizations, and build data-driven insights into the world of soccer. "

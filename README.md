@@ -28,7 +28,7 @@
 </p>
 
 <p align="center">
-  <a href=https://discord.gg/GTHc77sK>
+  <a href=https://discord.com/invite/GTHc77sK>
     <img src="https://dcbadge.limes.pink/api/server/GTHc77sK" alt="Discord invite link badge"></img>
   </a>
   <a href="https://buymeacoffee.com/automatica">

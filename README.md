@@ -72,7 +72,7 @@ Fbref contain the following modules
 | **Name**                                 | **Description**                        |
 |------------------------------------------|----------------------------------------|
 | `TeamInfos(team: str, league: str) -> dict` | Class or function to get information about a specific team.|
-| `TeamsInfo(league: str) -> dict`            | Retrieves information about multiple teams.|
+| `TeamsInfos(league: str) -> dict`            | Retrieves information about multiple teams.|
 | `HeadHeadByTeam(team: str, year: str, league: str) -> dict`| Retrieves head-to-head statistics by team.|
 | `MatchReportByTeam(team: str, year: str, league: str)`     | Generates a match report for a specific team.|
 | `FixturesByTeam(team: str, year: str, league: str)`        | Lists the fixtures for a given team.|
